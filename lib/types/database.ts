@@ -1,0 +1,90 @@
+/**
+ * Order status enum matching the PostgreSQL OrderStatus type
+ */
+export type OrderStatus = "OPEN" | "PAID" | "ORDERED" | "RECEIVED";
+
+/**
+ * User record from the User table
+ */
+export interface User {
+  id: number;
+  supabaseId: string;
+  email: string;
+  isAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Item record from the Item table (product catalog)
+ */
+export interface Item {
+  id: number;
+  number: number;
+  name: string;
+  costCents: number;
+  active: boolean;
+  imageStoragePath: string | null;
+  imageUrl: string | null;
+  sizes: string[] | null;
+  link: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Order record from the Order table
+ */
+export interface Order {
+  id: number;
+  userId: number;
+  status: OrderStatus;
+  totalCents: number;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * OrderItem record from the OrderItem table (line items)
+ */
+export interface OrderItem {
+  id: number;
+  orderId: number;
+  itemId: number;
+  quantity: number;
+  size: string | null;
+  playerName: string | null;
+  playerNumber: string | null;
+  lineTotalCents: number;
+  createdAt: string;
+}
+
+/**
+ * Cart item with joined Item data for display
+ */
+export interface CartItem extends OrderItem {
+  item: Item;
+}
+
+/**
+ * Cart (Order) with joined OrderItems and their Items for cart view
+ */
+export interface CartWithItems extends Order {
+  orderItems: CartItem[];
+}
+
+/**
+ * Item numbers that require player name and number fields
+ * These are personalized items (jerseys, hoodies with player number)
+ */
+export const PLAYER_INFO_REQUIRED_ITEMS = [1, 2, 10, 19] as const;
+
+/**
+ * Check if an item requires player name and number
+ * @param itemNumber - The item's number field
+ * @returns true if the item requires player info
+ */
+export function requiresPlayerInfo(itemNumber: number): boolean {
+  return (PLAYER_INFO_REQUIRED_ITEMS as readonly number[]).includes(itemNumber);
+}
