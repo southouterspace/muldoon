@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { OrderStatus } from "@/lib/types/database";
 
+import { bulkUpdateOrderStatus, updateOrderStatus } from "./actions";
 import { createColumns, type OrderRow } from "./columns";
 
 interface OrdersDataTableProps {
@@ -28,35 +29,6 @@ export function OrdersDataTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-
-  // Placeholder for status change - will be implemented in US-025
-  const handleStatusChange = useCallback(
-    (_orderId: number, _status: OrderStatus): Promise<void> => {
-      return new Promise((resolve) => {
-        startTransition(() => {
-          // TODO: Call updateOrderStatus action (US-025)
-          resolve();
-        });
-      });
-    },
-    []
-  );
-
-  // Placeholder for bulk status change - will be implemented in US-025
-  const handleBulkStatusChange = useCallback(
-    (_status: OrderStatus): Promise<void> => {
-      // TODO: Call bulkUpdateOrderStatus action (US-025)
-      // For now, just close the dialog and clear selection
-      setRowSelection({});
-      return Promise.resolve();
-    },
-    []
-  );
-
-  const columns = useMemo(
-    () => createColumns(handleStatusChange),
-    [handleStatusChange]
-  );
 
   // Filter orders by status if not "all"
   const filteredOrders = useMemo(() => {
@@ -75,6 +47,33 @@ export function OrdersDataTable({
   }, [rowSelection, filteredOrders]);
 
   const selectedCount = selectedOrderIds.length;
+
+  // Handle single order status change
+  const handleStatusChange = useCallback(
+    (orderId: number, status: OrderStatus): Promise<void> => {
+      return new Promise((resolve) => {
+        startTransition(async () => {
+          await updateOrderStatus(orderId, status);
+          resolve();
+        });
+      });
+    },
+    []
+  );
+
+  // Handle bulk status change - uses selectedOrderIds from closure
+  const handleBulkStatusChange = useCallback(
+    async (status: OrderStatus): Promise<void> => {
+      await bulkUpdateOrderStatus(selectedOrderIds, status);
+      setRowSelection({});
+    },
+    [selectedOrderIds]
+  );
+
+  const columns = useMemo(
+    () => createColumns(handleStatusChange),
+    [handleStatusChange]
+  );
 
   // Status filter dropdown and bulk update button in toolbar
   const toolbar = (
