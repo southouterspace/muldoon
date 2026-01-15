@@ -18,90 +18,49 @@
     "description": "Youth Grey Splatter Practice Shirt",
     "cost": 18,
     "link": "https://www.portandcompany.com/p/6524_GyConcrete",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL"]
   },
   {
     "number": 4,
     "description": "Youth Black Graffiti Practice Shirt",
     "cost": 18,
     "link": "https://www.jiffy.com/sporttek-YST350.html?ac=Neon+Pink&size=XS...",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL"]
   },
   {
     "number": 5,
     "description": "Youth Pink Electric Practice Shirt",
     "cost": 18,
     "link": "https://www.jiffy.com/sporttek-YST350.html?ac=Neon+Pink&size=XS...",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL"]
   },
   {
     "number": 6,
     "description": "Youth Red Seams Practice Shirt",
     "cost": 18,
     "link": "https://www.jiffy.com/sporttek-YST350.html?ac=Neon+Pink&size=XS...",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL"]
   },
   {
     "number": 7,
     "description": "Youth Red Raptors Baseball Short Sleeve Pullover",
     "cost": 30,
     "link": "https://www.sporttekusa.com/p/10088_DeepRed",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL"]
   },
   {
     "number": 8,
     "description": "Raptors Fitted Team Hat Black and Red",
     "cost": 20,
     "link": "https://baseball.epicsports.com/prod/117532/the-game-gb998-perforated-gamechanger-cap.html",
-    "sizes": [
-      "AXS",
-      "AS",
-      "AM",
-      "AL",
-      "AXL"
-    ]
+    "sizes": ["AXS", "AS", "AM", "AL", "AXL"]
   },
   {
     "number": 9,
     "description": "Red Camo socks",
     "cost": 19,
     "link": "https://www.madsportsstuff.com/products/tck-digital-camo-otc-socks?variant=31832871534682",
-    "sizes": [
-      "Small",
-      "Medium",
-      "Large",
-      "X-Large"
-    ]
+    "sizes": ["Small", "Medium", "Large", "X-Large"]
   },
   {
     "number": 10,
@@ -115,102 +74,49 @@
     "description": "Adult Gray Splatter Shirt (Medium Gray)",
     "cost": 22,
     "link": "https://www.ssactivewear.com/p/paragon/200",
-    "sizes": [
-      "S",
-      "M",
-      "L",
-      "XL",
-      "2XL",
-      "3XL",
-      "4XL",
-      "5XL",
-      "6XL"
-    ]
+    "sizes": ["S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"]
   },
   {
     "number": 12,
     "description": "Adult Black Graffiti Shirt",
     "cost": 22,
     "link": "https://www.ssactivewear.com/p/comfort_colors/1717",
-    "sizes": [
-      "S",
-      "M",
-      "L",
-      "XL",
-      "2XL",
-      "3XL",
-      "4XL"
-    ]
+    "sizes": ["S", "M", "L", "XL", "2XL", "3XL", "4XL"]
   },
   {
     "number": 13,
     "description": "Adult Pink Electric Shirt",
     "cost": 22,
     "link": "https://www.ssactivewear.com/p/comfort_colors/1717",
-    "sizes": [
-      "S",
-      "M",
-      "L",
-      "XL",
-      "2XL",
-      "3XL",
-      "4XL"
-    ]
+    "sizes": ["S", "M", "L", "XL", "2XL", "3XL", "4XL"]
   },
   {
     "number": 14,
     "description": "Adult Red Seams Shirt (Red)",
     "cost": 22,
     "link": "https://www.ssactivewear.com/p/paragon/200",
-    "sizes": [
-      "S",
-      "M",
-      "L",
-      "XL",
-      "2XL",
-      "3XL",
-      "4XL",
-      "5XL",
-      "6XL"
-    ]
+    "sizes": ["S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"]
   },
   {
     "number": 15,
     "description": "Adult Hooded SPF Long Sleeve (Heathered Grey )",
     "cost": 25,
     "link": "https://www.ssactivewear.com/p/paragon/220",
-    "sizes": [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL",
-      "2XL",
-      "3XL",
-      "4XL"
-    ]
+    "sizes": ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"]
   },
   {
     "number": 16,
     "description": "Raptors Fitted Team Hat Black and Red",
     "cost": 20,
     "link": "https://baseball.epicsports.com/prod/117532/the-game-gb998-perforated-gamechanger-cap.html",
-    "sizes": [
-      "AXS",
-      "AS",
-      "AM",
-      "AL",
-      "AXL"
-    ]
+    "sizes": ["AXS", "AS", "AM", "AL", "AXL"]
   },
   {
     "number": 17,
     "description": "Snapback Raptors Hat - Black and White",
     "cost": 20,
     "link": "https://www.ssactivewear.com/p/yp_classics/6606",
-    "sizes": [
-      "Adjustable"
-    ]
+    "sizes": ["Adjustable"]
   },
   {
     "number": 18,
