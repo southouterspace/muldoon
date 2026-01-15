@@ -1,10 +1,10 @@
 "use client";
 
-import { Loader2, ShoppingBag, Trash2 } from "lucide-react";
-import Image from "next/image";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
 import { removeFromCart, updateCartItem } from "@/app/actions/cart";
+import { CartItemRow } from "@/components/cart/cart-item-row";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { CartItem, CartWithItems } from "@/lib/types/database";
 import { formatCents } from "@/lib/utils/currency";
@@ -115,81 +114,12 @@ export function CartView({ cart }: CartViewProps): React.ReactElement {
           {optimisticItems.map((cartItem, index) => (
             <div key={cartItem.id}>
               {index > 0 && <Separator className="mb-4" />}
-              <div className="flex gap-4">
-                {/* Item Image */}
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
-                  {cartItem.item.imageUrl ? (
-                    <Image
-                      alt={cartItem.item.name}
-                      className="object-cover"
-                      fill
-                      sizes="96px"
-                      src={cartItem.item.imageUrl}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <span className="text-muted-foreground text-xs">
-                        No image
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Item Details */}
-                <div className="flex flex-1 flex-col justify-between">
-                  <div className="space-y-1">
-                    <h3 className="font-medium">{cartItem.item.name}</h3>
-                    <div className="flex flex-wrap gap-2 text-muted-foreground text-sm">
-                      {cartItem.size && <span>Size: {cartItem.size}</span>}
-                      {cartItem.playerName && (
-                        <span>Player: {cartItem.playerName}</span>
-                      )}
-                      {cartItem.playerNumber && (
-                        <span>#{cartItem.playerNumber}</span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {formatCents(cartItem.item.costCents)} each
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quantity and Actions */}
-                <div className="flex flex-col items-end justify-between">
-                  <p className="font-semibold">
-                    {formatCents(cartItem.lineTotalCents)}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      className="h-8 w-16 text-center"
-                      disabled={isPending}
-                      max={99}
-                      min={1}
-                      onChange={(e) =>
-                        handleQuantityChange(
-                          cartItem.id,
-                          Number(e.target.value)
-                        )
-                      }
-                      type="number"
-                      value={cartItem.quantity}
-                    />
-                    <Button
-                      disabled={isPending}
-                      onClick={() => handleRemove(cartItem.id)}
-                      size="icon"
-                      variant="ghost"
-                    >
-                      {isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">Remove item</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <CartItemRow
+                cartItem={cartItem}
+                isPending={isPending}
+                onQuantityChange={handleQuantityChange}
+                onRemove={handleRemove}
+              />
             </div>
           ))}
         </CardContent>
