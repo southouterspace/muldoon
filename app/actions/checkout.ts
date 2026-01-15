@@ -39,10 +39,11 @@ export async function submitOrder(formData: FormData): Promise<ActionResult> {
   }
 
   // Get user from database
+  // Note: PostgreSQL lowercases unquoted column names
   const { data: dbUser } = await supabase
     .from("User")
     .select("id, email")
-    .eq("supabaseId", user.id)
+    .eq("supabaseid", user.id)
     .single();
 
   if (!dbUser) {

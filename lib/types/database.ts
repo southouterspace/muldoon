@@ -5,12 +5,13 @@ export type OrderStatus = "OPEN" | "PAID" | "ORDERED" | "RECEIVED";
 
 /**
  * User record from the User table
+ * Note: PostgreSQL lowercases unquoted column names, so we use lowercase here
  */
 export interface User {
   id: number;
-  supabaseId: string;
+  supabaseid: string;
   email: string;
-  isAdmin: boolean;
+  isadmin: boolean;
   createdAt: string;
   updatedAt: string;
 }

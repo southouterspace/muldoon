@@ -69,10 +69,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const isAdmin = isAdminEmail(email);
 
   // Check if user exists in User table
+  // Note: PostgreSQL lowercases unquoted column names, so we use lowercase here
   const { data: existingUser, error: selectError } = await supabase
     .from("User")
-    .select("id, isAdmin")
-    .eq("supabaseId", supabaseId)
+    .select("id, isadmin")
+    .eq("supabaseid", supabaseId)
     .single();
 
   if (selectError && selectError.code !== "PGRST116") {
@@ -83,12 +84,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   if (existingUser) {
-    // User exists - update isAdmin if it changed
-    if (existingUser.isAdmin !== isAdmin) {
+    // User exists - update isadmin if it changed
+    if (existingUser.isadmin !== isAdmin) {
       const { error: updateError } = await supabase
         .from("User")
-        .update({ isAdmin, updatedAt: new Date().toISOString() })
-        .eq("supabaseId", supabaseId);
+        .update({ isadmin: isAdmin, updatedAt: new Date().toISOString() })
+        .eq("supabaseid", supabaseId);
 
       if (updateError) {
         return NextResponse.redirect(
@@ -99,9 +100,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   } else {
     // New user - create record
     const { error: insertError } = await supabase.from("User").insert({
-      supabaseId,
+      supabaseid: supabaseId,
       email,
-      isAdmin,
+      isadmin: isAdmin,
     });
 
     if (insertError) {

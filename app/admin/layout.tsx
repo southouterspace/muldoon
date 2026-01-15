@@ -17,13 +17,14 @@ async function getAdminUser(): Promise<{ email: string } | null> {
     }
 
     // Check if user exists and is admin
+    // Note: PostgreSQL lowercases unquoted column names
     const { data: dbUser } = await supabase
       .from("User")
-      .select("isAdmin")
-      .eq("supabaseId", user.id)
+      .select("isadmin")
+      .eq("supabaseid", user.id)
       .single();
 
-    if (!dbUser?.isAdmin) {
+    if (!dbUser?.isadmin) {
       return null;
     }
 

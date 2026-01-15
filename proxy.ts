@@ -72,14 +72,15 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   // Check admin access for admin routes
   if (requiresAdmin && user) {
-    // Query the User table to check isAdmin flag
+    // Query the User table to check isadmin flag
+    // Note: PostgreSQL lowercases unquoted column names
     const { data: userData, error } = await supabase
       .from("User")
-      .select("isAdmin")
-      .eq("supabaseId", user.id)
+      .select("isadmin")
+      .eq("supabaseid", user.id)
       .single();
 
-    if (error || !userData?.isAdmin) {
+    if (error || !userData?.isadmin) {
       // Non-admin users redirected to home
       const homeUrl = new URL("/", request.url);
       return NextResponse.redirect(homeUrl);

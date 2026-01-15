@@ -19,10 +19,11 @@ async function getCartItemCount(): Promise<number> {
     }
 
     // Get the user's database ID
+    // Note: PostgreSQL lowercases unquoted column names
     const { data: dbUser } = await supabase
       .from("User")
       .select("id")
-      .eq("supabaseId", user.id)
+      .eq("supabaseid", user.id)
       .single();
 
     if (!dbUser) {

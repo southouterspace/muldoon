@@ -26,10 +26,11 @@ async function getCurrentUserId(): Promise<number | null> {
     return null;
   }
 
+  // Note: PostgreSQL lowercases unquoted column names
   const { data: dbUser } = await supabase
     .from("User")
     .select("id")
-    .eq("supabaseId", user.id)
+    .eq("supabaseid", user.id)
     .single();
 
   return dbUser?.id ?? null;
