@@ -1,7 +1,7 @@
+import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams, origin } = new URL(request.url);
@@ -11,7 +11,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
 
-  const supabase = await createClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!(supabaseUrl && supabaseAnonKey)) {
+    return NextResponse.redirect(`${origin}/login?error=missing_config`);
+  }
+
+  // Create response to set cookies on
+  const response = NextResponse.redirect(`${origin}/`);
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options);
+        }
+      },
+    },
+  });
 
   // Exchange the code for a session
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -75,6 +96,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // Success - redirect to home
-  return NextResponse.redirect(`${origin}/`);
+  // Success - return response with cookies set
+  return response;
 }

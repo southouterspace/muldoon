@@ -1,5 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 
@@ -70,14 +71,6 @@ export async function Header(): Promise<React.ReactElement> {
           <Link className="font-bold text-xl" href="/">
             Raptors
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-              href="/products"
-            >
-              Products
-            </Link>
-          </nav>
         </div>
         <div className="flex items-center gap-4">
           <Link className="relative" href="/cart">
@@ -91,6 +84,7 @@ export async function Header(): Promise<React.ReactElement> {
               Cart{cartItemCount > 0 ? ` (${cartItemCount} items)` : ""}
             </span>
           </Link>
+          <LogoutButton />
         </div>
       </div>
     </header>
