@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useTransition } from "react";
+import { submitOrder } from "@/app/actions/checkout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,10 +27,8 @@ export function CheckoutForm({ cart }: CheckoutFormProps): React.ReactElement {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    startTransition(() => {
-      // TODO: US-014 will implement submitOrder action
-      // For now, we'll just log the form data
-      console.log("Order notes:", formData.get("note"));
+    startTransition(async () => {
+      await submitOrder(formData);
     });
   }
 
