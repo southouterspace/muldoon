@@ -20,7 +20,7 @@ function matchesRoutes(pathname: string, routes: string[]): boolean {
   );
 }
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next({
     request,
   });
