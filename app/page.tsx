@@ -28,7 +28,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
   const supabase = await createClient();
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  console.log("[homepage] Auth check:", {
+    hasUser: !!user,
+    userId: user?.id,
+    error: error?.message,
+  });
 
   if (!user) {
     redirect("/login");

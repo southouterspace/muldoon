@@ -7,6 +7,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
+  console.log("[callback] Request received", {
+    origin,
+    hasCode: !!code,
+    cookies: request.cookies.getAll().map((c) => c.name),
+  });
+
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
@@ -27,6 +33,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
+        console.log(
+          "[callback] Setting cookies:",
+          cookiesToSet.map((c) => c.name)
+        );
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
@@ -36,6 +46,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Exchange the code for a session
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  console.log("[callback] Exchange result:", {
+    success: !!data?.user,
+    error: error?.message,
+    userId: data?.user?.id,
+  });
 
   if (error || !data.user) {
     const errorMessage = error?.message || "authentication_failed";
