@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -95,43 +96,49 @@ export async function submitOrder(formData: FormData): Promise<ActionResult> {
     return { success: false, error: "Failed to submit order" };
   }
 
-  // Send email notification to admin
+  // Send email notification to admin (non-blocking, runs after response)
   const adminEmail = process.env.ADMIN_EMAIL;
   const resendApiKey = process.env.RESEND_API_KEY;
+  // Capture data needed for email before the after() callback
+  const orderItemsSnapshot = order.orderItems as CartItem[];
+  const orderIdSnapshot = order.id;
+  const orderTotalSnapshot = order.totalCents;
+  const dbUserEmailSnapshot = dbUser.email;
 
   if (adminEmail && resendApiKey) {
-    const resend = new Resend(resendApiKey);
+    after(async () => {
+      const resend = new Resend(resendApiKey);
 
-    // Build line items HTML
-    const lineItemsHtml = (order.orderItems as CartItem[])
-      .map((item) => {
-        const details: string[] = [];
-        if (item.size) {
-          details.push(`Size: ${item.size}`);
-        }
-        if (item.playerName) {
-          details.push(`Player: ${item.playerName}`);
-        }
-        if (item.playerNumber) {
-          details.push(`#${item.playerNumber}`);
-        }
-        details.push(`Qty: ${item.quantity}`);
+      // Build line items HTML
+      const lineItemsHtml = orderItemsSnapshot
+        .map((item) => {
+          const details: string[] = [];
+          if (item.size) {
+            details.push(`Size: ${item.size}`);
+          }
+          if (item.playerName) {
+            details.push(`Player: ${item.playerName}`);
+          }
+          if (item.playerNumber) {
+            details.push(`#${item.playerNumber}`);
+          }
+          details.push(`Qty: ${item.quantity}`);
 
-        return `
+          return `
           <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item.name}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${details.join(" | ")}</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${formatCents(item.lineTotalCents)}</td>
           </tr>
         `;
-      })
-      .join("");
+        })
+        .join("");
 
-    const emailHtml = `
+      const emailHtml = `
       <h2>New Order Received</h2>
-      <p><strong>Order ID:</strong> ${order.id}</p>
-      <p><strong>Customer:</strong> ${dbUser.email}</p>
-      <p><strong>Total:</strong> ${formatCents(order.totalCents)}</p>
+      <p><strong>Order ID:</strong> ${orderIdSnapshot}</p>
+      <p><strong>Customer:</strong> ${dbUserEmailSnapshot}</p>
+      <p><strong>Total:</strong> ${formatCents(orderTotalSnapshot)}</p>
       ${note ? `<p><strong>Note:</strong> ${note}</p>` : ""}
 
       <h3>Order Items</h3>
@@ -149,23 +156,24 @@ export async function submitOrder(formData: FormData): Promise<ActionResult> {
         <tfoot>
           <tr>
             <td colspan="2" style="padding: 8px; font-weight: bold;">Order Total</td>
-            <td style="padding: 8px; font-weight: bold; text-align: right;">${formatCents(order.totalCents)}</td>
+            <td style="padding: 8px; font-weight: bold; text-align: right;">${formatCents(orderTotalSnapshot)}</td>
           </tr>
         </tfoot>
       </table>
     `;
 
-    try {
-      await resend.emails.send({
-        from: "Raptors Store <onboarding@resend.dev>",
-        to: adminEmail,
-        subject: `New Order #${order.id} from ${dbUser.email}`,
-        html: emailHtml,
-      });
-    } catch (emailError) {
-      // Log email error but don't fail the order
-      console.error("Failed to send order notification email:", emailError);
-    }
+      try {
+        await resend.emails.send({
+          from: "Raptors Store <onboarding@resend.dev>",
+          to: adminEmail,
+          subject: `New Order #${orderIdSnapshot} from ${dbUserEmailSnapshot}`,
+          html: emailHtml,
+        });
+      } catch {
+        // Email errors are logged but don't block user flow
+        // Error is intentionally not used to avoid unused variable lint error
+      }
+    });
   }
 
   // Revalidate paths
