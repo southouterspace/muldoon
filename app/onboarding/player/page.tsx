@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getPlayers, getUserPlayers } from "@/app/actions/players";
+import { PlayerSelection } from "@/components/onboarding/player-selection";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PlayerSelectionPage(): Promise<React.ReactNode> {
@@ -35,10 +36,7 @@ export default async function PlayerSelectionPage(): Promise<React.ReactNode> {
       <p className="mb-8 text-center text-muted-foreground">
         Choose your player profile to personalize your ordering experience.
       </p>
-      {/* PlayerSelection client component will be added in US-006 */}
-      <div className="rounded-lg border p-8 text-center text-muted-foreground">
-        Player selection UI coming soon. {players.length} players available.
-      </div>
+      <PlayerSelection players={players} />
     </div>
   );
 }
