@@ -4,12 +4,63 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
+const STORAGE_BUCKET = "product-images";
+
 /**
  * Result type for item operations
  */
 interface ActionResult {
   success: boolean;
   error?: string;
+}
+
+interface ImageUploadResult {
+  storagePath: string;
+  publicUrl: string;
+}
+
+/**
+ * Upload an image to Supabase Storage
+ * @param supabase - Supabase client
+ * @param itemId - Item ID for the storage path
+ * @param file - Image file to upload
+ * @returns Storage path and public URL, or null on error
+ */
+async function uploadImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  itemId: number,
+  file: File
+): Promise<ImageUploadResult | null> {
+  const storagePath = `items/${itemId}/${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, file, { upsert: true });
+
+  if (uploadError) {
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(storagePath);
+
+  return {
+    storagePath,
+    publicUrl: urlData.publicUrl,
+  };
+}
+
+/**
+ * Delete an image from Supabase Storage
+ * @param supabase - Supabase client
+ * @param storagePath - Path to the file in storage
+ */
+async function deleteImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  storagePath: string
+): Promise<void> {
+  await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
 }
 
 /**
@@ -141,18 +192,58 @@ export async function updateItem(
     return { success: false, error: `Item number ${number} already exists` };
   }
 
-  const { error } = await supabase
+  // Get current item to check for existing image
+  const { data: currentItem } = await supabase
     .from("Item")
-    .update({
-      number,
-      name,
-      costCents,
-      active,
-      sizes,
-      link,
-      updatedAt: new Date().toISOString(),
-    })
-    .eq("id", id);
+    .select("imageStoragePath")
+    .eq("id", id)
+    .single();
+
+  // Handle image upload/deletion
+  const imageFile = formData.get("image");
+  const shouldDeleteImage = formData.get("deleteImage") === "true";
+
+  let imageStoragePath: string | null | undefined;
+  let imageUrl: string | null | undefined;
+
+  if (imageFile instanceof File && imageFile.size > 0) {
+    // Delete old image if exists
+    if (currentItem?.imageStoragePath) {
+      await deleteImage(supabase, currentItem.imageStoragePath);
+    }
+
+    // Upload new image
+    const uploadResult = await uploadImage(supabase, id, imageFile);
+    if (!uploadResult) {
+      return { success: false, error: "Failed to upload image" };
+    }
+    imageStoragePath = uploadResult.storagePath;
+    imageUrl = uploadResult.publicUrl;
+  } else if (shouldDeleteImage && currentItem?.imageStoragePath) {
+    // Delete existing image
+    await deleteImage(supabase, currentItem.imageStoragePath);
+    imageStoragePath = null;
+    imageUrl = null;
+  }
+
+  // Build update object
+  const updateData: Record<string, unknown> = {
+    number,
+    name,
+    costCents,
+    active,
+    sizes,
+    link,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Only include image fields if they changed
+  if (imageStoragePath !== undefined) {
+    updateData.imageStoragePath = imageStoragePath;
+    updateData.imageUrl = imageUrl;
+  }
+
+  const { error } = await supabase.from("Item").update(updateData).eq("id", id);
 
   if (error) {
     return { success: false, error: "Failed to update item" };
