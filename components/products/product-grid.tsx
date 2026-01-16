@@ -4,7 +4,7 @@ import type { Item } from "@/lib/types/database";
 interface ProductGridProps {
   items: Item[];
   onAddToCart?: (data: {
-    itemId: number;
+    itemId: string;
     quantity: number;
     size: string | null;
     playerName: string | null;

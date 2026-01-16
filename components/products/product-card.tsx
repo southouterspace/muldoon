@@ -20,7 +20,7 @@ import { formatCents } from "@/lib/utils/currency";
 interface ProductCardProps {
   item: Item;
   onAddToCart?: (data: {
-    itemId: number;
+    itemId: string;
     quantity: number;
     size: string | null;
     playerName: string | null;
