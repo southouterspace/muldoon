@@ -1,231 +1,100 @@
-# Ralph Progress Log - Performance Optimization
-
-Branch: ralph/performance-optimization
-Started: 2026-01-16
+# Ralph Progress Log
+Started: Fri Jan 16 08:42:26 CST 2026
 
 ## Codebase Patterns
-- Use `Promise.all()` to parallelize independent Supabase queries for better performance
-- Supabase query results can be destructured after Promise.all: `const { data, error } = result`
-- Use `getCachedUser()` from `lib/supabase/cached.ts` for deduplicated auth calls in server components
-- Use `after()` from "next/server" for non-blocking background work (e.g., sending emails after redirect)
-- Use discriminated union types (with `status` field) for functions that can return multiple outcomes, to avoid redundant null-checks
-- When queries have data dependencies, use Supabase nested selects to combine into a single query (e.g., `user:User (email, userPlayers:UserPlayer (...))`)
-- For Suspense streaming: extract async data fetching into a separate async component, wrap with `<Suspense fallback={<Skeleton />}>` in the page
-- Skeleton components use `components/ui/skeleton.tsx` as the base - use string-based keys for mapped elements (e.g., `key={`row-${String(i)}`}`)
-- For memoization: use `items.length` instead of full array when only bounds checking is needed; create Map<key, Item> for O(1) lookups when finding related items
-- For useCallback: `startTransition` (from useTransition) and `updateOptimisticItems` (from useOptimistic) are stable references, don't include in deps
-- For client component props: create slimmed-down types (e.g., ProductItem) with only client-needed fields; use specific .select() columns in Supabase queries
-- TypeScript check: `bunx tsc --noEmit`
-- Lint check: `bun x ultracite check`
-- Build: `bun run build`
+- User table column names are lowercase: `supabaseid`, `isadmin` (not camelCase)
+- Use `CREATE OR REPLACE FUNCTION` for Supabase RPC functions with `SECURITY DEFINER`
+- Always use `IF NOT EXISTS` or `ON CONFLICT` for idempotent migrations
 
 ---
 
-## 2026-01-16 - US-001
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Parallelized orders and orderItems queries in admin orders page
-- Wrapped both Supabase queries in Promise.all() for concurrent execution
-- Files changed: app/admin/orders/page.tsx
+## 2026-01-16 08:44:33 - US-001
+- What was implemented:
+  - Created Supabase RPC function `handle_auth_callback` that consolidates user upsert and linked players check
+  - Function accepts p_supabase_id, p_email, p_is_admin parameters
+  - Performs INSERT ON CONFLICT UPDATE on User table
+  - Returns user_id and has_linked_players in single query using EXISTS subquery
+- Files changed:
+  - supabase/migrations/20260116084318_create_handle_auth_callback_rpc.sql (new)
 - **Learnings for future iterations:**
-  - Pattern: Wrap independent Supabase queries in Promise.all(), then destructure results separately
-  - The Ultracite linter auto-formats code on save/commit
-  - Project uses lefthook for pre-commit hooks that run ultracite fix
-
+  - User table uses lowercase column names (`supabaseid`, `isadmin`) not camelCase
+  - UserPlayer junction table has `userId` and `playerId` as composite primary key
+  - Use EXISTS subquery for boolean checks instead of LEFT JOIN for performance
 ---
 
 ## 2026-01-16 - US-002
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Parallelized batch item position updates in moveToPosition function
-- Refactored sequential for-loop to use Promise.all() with map
-- Error handling checks for any failed update in the batch using .find()
-- Files changed: app/admin/items/actions.ts
+- What was implemented:
+  - Replaced `getOrCreateUser()` and `hasLinkedPlayers()` functions with single `supabase.rpc('handle_auth_callback', ...)` call
+  - RPC call placed immediately after `exchangeCodeForSession()` completes
+  - Error handling preserved for RPC failures with same redirect pattern
+  - Redirect logic unchanged: `/onboarding/player` if no linked players, `/` otherwise
+  - Removed ~70 lines of code by consolidating two DB operations into one RPC call
+- Files changed:
+  - app/auth/callback/route.ts (modified)
 - **Learnings for future iterations:**
-  - When mapping over an array in Promise.all(), TypeScript needs explicit type annotation for the callback parameter if noImplicitAny is enabled
-  - Pattern: Use `.find((result) => result.error)` to detect any failures in a batch of Supabase operations
-
+  - Supabase RPC returns array even for single-row results - access via `rpcResult[0]`
+  - RPC function parameter names use `p_` prefix convention (e.g., `p_supabase_id`)
+  - Return columns from RPC use snake_case (`has_linked_players`) not camelCase
 ---
 
 ## 2026-01-16 - US-003
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Implemented React.cache() wrapper for auth deduplication
-- Created lib/supabase/cached.ts with getCachedUser() function
-- Files changed: lib/supabase/cached.ts (new file)
+- What was implemented:
+  - Added `export const revalidate = 3600` to app/(main)/page.tsx for 1-hour ISR caching
+  - Added `revalidatePath('/')` to all admin item mutation functions for on-demand cache invalidation:
+    - createItem, updateItem, updateDisplayOrder, swapDisplayOrder, moveToPosition, deleteItem
+- Files changed:
+  - app/(main)/page.tsx (modified - added revalidate export)
+  - app/admin/items/actions.ts (modified - added revalidatePath('/') to all mutations)
 - **Learnings for future iterations:**
-  - React.cache() deduplicates calls within a single request lifecycle
-  - Import `cache` from "react" (not "react/cache")
-  - The cached function returns the same Promise as supabase.auth.getUser(), so existing destructuring patterns work unchanged
-
+  - Admin item actions originally only invalidated `/admin`, not `/` where products are displayed
+  - ISR revalidate exports must be at the page level, not in components
+  - When adding caching to data display pages, remember to check mutation actions for cache invalidation
 ---
 
 ## 2026-01-16 - US-004
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Replaced direct supabase.auth.getUser() with getCachedUser() in server components
-- Updated app/(main)/page.tsx, app/(main)/cart/page.tsx, and app/admin/layout.tsx
-- Admin layout still uses createClient() for the admin check query, but auth is now cached
-- Files changed: app/(main)/page.tsx, app/(main)/cart/page.tsx, app/admin/layout.tsx
+- What was implemented:
+  - Added `export const revalidate = 3600` to app/admin/players/page.tsx for 1-hour ISR caching
+  - Added `revalidatePath('/admin/players')` to player mutation functions for on-demand cache invalidation:
+    - createPlayer, linkPlayerToUser
+- Files changed:
+  - app/admin/players/page.tsx (modified - added revalidate export)
+  - app/actions/players.ts (modified - added revalidatePath('/admin/players') to mutations)
 - **Learnings for future iterations:**
-  - The Ultracite linter removes unused imports automatically - must add import and usage in the same edit or the import will be removed before usage can be added
-  - getCachedUser() has the same return type as supabase.auth.getUser(), so destructuring patterns remain unchanged
-  - The admin layout has two auth calls - one in getAdminUser() and a fallback in the layout itself - both should use the cached version
-
+  - Player actions originally only invalidated `/onboarding/player`, not `/admin/players` where roster is displayed
+  - Similar pattern to US-003: when adding ISR caching, audit all mutation paths that affect the cached data
 ---
 
 ## 2026-01-16 - US-005
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Implemented non-blocking email with Next.js after() function
-- Moved email sending logic inside after() callback so checkout redirect happens immediately
-- Captured order data in snapshot variables before after() callback to ensure data is available when callback executes
-- Removed console.error in catch block to avoid unused variable lint error (email errors silently ignored per acceptance criteria)
-- Files changed: app/actions/checkout.ts
+- What was implemented:
+  - Removed server-side `supabase.auth.getUser()` check from login page
+  - Added `export const dynamic = 'force-static'` to make page fully static
+  - Converted from async function to sync function (no longer needs await)
+  - Removed unused imports (`redirect`, `createClient`)
+- Files changed:
+  - app/(auth)/login/page.tsx (modified - removed auth check, added force-static)
 - **Learnings for future iterations:**
-  - `after()` from "next/server" schedules work to run after the response is sent to the client
-  - Variables used inside after() callback must be captured outside the callback (closures over request-scoped data)
-  - The Ultracite linter requires unused catch error parameters to be omitted (use `catch {` instead of `catch (error) {`)
-
+  - When making a page static, auth redirects must be handled elsewhere (middleware in US-006)
+  - `force-static` ensures the page is pre-rendered at build time with no server-side processing
+  - Removing async from page function is required when there are no awaited operations
 ---
 
 ## 2026-01-16 - US-006
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Fixed duplicate auth calls in admin layout by returning richer context from getAdminUser()
-- Created discriminated union type AdminUserResult with three states: admin, authenticated_not_admin, unauthenticated
-- Eliminated redundant getCachedUser() call in layout that was used to determine redirect destination
-- Now only one auth call (via getCachedUser()) and one admin check query (via createClient()) per request
-- Files changed: app/admin/layout.tsx
+- What was implemented:
+  - Created new middleware.ts at project root for /login route auth checking
+  - Middleware creates Supabase client and calls getUser() to check auth status
+  - Authenticated users redirected to `/` before login page renders
+  - Unauthenticated users proceed to login page normally
+  - Matcher config restricts middleware to only /login route
+- Files changed:
+  - middleware.ts (new)
 - **Learnings for future iterations:**
-  - Use discriminated union types to return richer context from helper functions instead of null-checking
-  - TypeScript's control flow analysis narrows discriminated union types after redirect() calls (since redirect returns `never`)
-  - This pattern avoids try-catch in helper functions - the discriminated union explicitly represents all possible states
-
+  - Existing `lib/supabase/middleware.ts` is a helper for session refresh, not the actual Next.js middleware
+  - Middleware.ts at project root is where Next.js route matching config goes
+  - Use `export const config = { matcher: ["/route"] }` to restrict middleware to specific routes
+  - Middleware runs before static pages, enabling auth checks without making pages dynamic
 ---
-
-## 2026-01-16 - US-007
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Optimized order detail page by combining two sequential queries into one nested query
-- Extended the Order query to include `user.userPlayers.player` in a single database round trip
-- Updated OrderFromDb interface to reflect the new nested structure
-- Reduced database round trips from 2 to 1
-- Files changed: app/admin/orders/[orderId]/page.tsx
-- **Learnings for future iterations:**
-  - When queries have data dependencies (query B needs result from query A), Promise.all is not possible
-  - Supabase nested selects (e.g., `user:User (email, userPlayers:UserPlayer (player:Player (...)))`) can combine dependent queries into one
-  - Single nested query is often superior to Promise.all because it reduces DB round trips
-  - Always analyze query dependencies before choosing parallelization vs combination strategy
-
----
-
-## 2026-01-16 - US-008
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Deleted unused demo component: components/component-example.tsx
-- Verified no imports reference the file (only PRD and tasks doc mentioned it)
-- Build and typecheck both pass
-- Files changed: components/component-example.tsx (deleted)
-- **Learnings for future iterations:**
-  - Use grep pattern `from.*filename|import.*ComponentName` to find actual code imports
-  - Documentation files (PRD, tasks) mentioning a file don't count as dependencies
-
----
-
-## 2026-01-16 - US-009
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Removed all console.error statements from production code per Ultracite standards
-- Files changed: app/admin/orders/page.tsx, app/admin/page.tsx, app/(main)/page.tsx, components/onboarding/player-selection.tsx, app/auth/callback/route.ts
-- Note: app/actions/checkout.ts already had console.error removed in US-005
-- **Learnings for future iterations:**
-  - PRD line numbers may drift as code changes - always verify actual line numbers before editing
-  - Ultracite enforces no console statements in production code
-  - When removing error logging in catch blocks, consider if error handling behavior is still appropriate (in this case, all error cases already had sensible fallback behavior)
-
----
-
-## 2026-01-16 - US-010
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Added Suspense boundary to Admin Orders Page for streaming content
-- Created reusable Skeleton UI component at components/ui/skeleton.tsx
-- Created OrdersTableSkeleton component with table structure mimicking the actual table
-- Extracted async data fetching into OrdersContent component
-- Wrapped OrdersContent with Suspense in page.tsx
-- Files changed: app/admin/orders/page.tsx (refactored), app/admin/orders/orders-content.tsx (new), app/admin/orders/orders-table-skeleton.tsx (new), app/admin/orders/team-summary-table.tsx (import change), components/ui/skeleton.tsx (new)
-- **Learnings for future iterations:**
-  - For Suspense streaming to work, extract async data fetching into a separate async component
-  - The page component becomes synchronous and just renders the Suspense boundary
-  - Use string-based keys with prefixes (e.g., `row-${index}`) instead of bare array indices to satisfy linter rules for skeleton components
-  - Move shared types to the content component when refactoring (e.g., TeamSummaryItem moved from page.tsx to orders-content.tsx)
-
----
-
-## 2026-01-16 - US-011
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Added Suspense boundary to Main Page Product Grid for streaming content
-- Created ProductGridSkeleton component with card placeholders mimicking actual product cards (image, title, price badge, size/quantity inputs, button)
-- Created ProductGridContent async component to fetch active items
-- Moved getActiveItems() function from page.tsx to product-grid-content.tsx
-- Refactored page.tsx to wrap ProductGridContent in Suspense boundary
-- Files changed: app/(main)/page.tsx (refactored), app/(main)/product-grid-content.tsx (new), app/(main)/product-grid-skeleton.tsx (new)
-- **Learnings for future iterations:**
-  - The Suspense pattern established in US-010 applies consistently: extract async to separate component, wrap with Suspense
-  - Skeleton components should mimic the actual component structure for visual consistency during loading
-  - Card-based skeletons need different structure than table-based skeletons (grids vs rows)
-
----
-
-## 2026-01-16 - US-012
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Added Suspense boundary to Admin Players Page for streaming content
-- Created PlayersTableSkeleton component with 3-column table structure (Player Name, Jersey Number, Linked Users)
-- Created PlayersContent async component to fetch players with linked user emails
-- Refactored page.tsx to wrap PlayersContent in Suspense boundary
-- Also removed console.error that was missed in US-009 (error handling now in PlayersContent)
-- Files changed: app/admin/players/page.tsx (refactored), app/admin/players/players-content.tsx (new), app/admin/players/players-table-skeleton.tsx (new)
-- **Learnings for future iterations:**
-  - The Suspense pattern is now well-established: extract async into *-content.tsx, create *-skeleton.tsx, wrap in Suspense in page.tsx
-  - When refactoring pages for Suspense, console.error statements may need to be replaced with inline error UI in the content component
-  - Count actual columns in the data table (via columns.tsx) to determine skeleton column count
-
----
-
-## 2026-01-16 - US-013
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Fixed array dependencies in ItemsDataTable to prevent unnecessary re-renders
-- Created itemsByDisplayOrder Map (memoized) for O(1) lookups of adjacent items
-- Refactored handleMoveUp/handleMoveDown to use the Map instead of items.findIndex() and array access
-- Refactored canMoveUp to use item.displayOrder (empty dependency array)
-- Refactored canMoveDown to use items.length instead of full items array
-- Memoized positions array with useMemo depending on items.length
-- Files changed: app/admin/items/items-data-table.tsx
-- **Learnings for future iterations:**
-  - When items have a displayOrder property, use it directly instead of findIndex to determine position
-  - Create a Map<displayOrder, Item> for O(1) lookups when you need to find adjacent items
-  - canMove functions can often use item properties directly instead of searching the array
-  - For callbacks that only need to check bounds, items.length is sufficient (primitive, doesn't trigger re-memoization on item content changes)
-
----
-
-## 2026-01-16 - US-014
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Memoized CartView callbacks to prevent unnecessary re-renders of CartItemRow children
-- Wrapped handleQuantityChange and handleRemove in useCallback
-- Dependencies are minimal: only updateOptimisticItems (stable from useOptimistic)
-- startTransition was removed from deps per linter (stable reference from useTransition)
-- Files changed: components/cart/cart-view.tsx
-- **Learnings for future iterations:**
-  - useTransition's startTransition and useOptimistic's updater function are stable references - don't need to be in dependency arrays
-  - Ultracite's exhaustive-deps rule will flag unnecessary dependencies and suggest removal
-  - When import and usage aren't in same edit, linter may auto-remove unused import - combine import+usage in one edit
-
----
-
-## 2026-01-16 - US-015
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
-- Minimized props passed to ProductGridClient to reduce serialization overhead
-- Created ProductItem type with only 5 fields needed by client (id, name, costCents, imageUrl, sizes)
-- Updated ProductGridContent query to select specific fields instead of '*'
-- Updated ProductGridClient, ProductGrid, ProductCard to use ProductItem type
-- Files changed: lib/types/database.ts, app/(main)/product-grid-content.tsx, components/products/product-grid-client.tsx, components/products/product-grid.tsx, components/products/product-card.tsx
-- **Learnings for future iterations:**
-  - Before creating slimmed types, analyze which fields are actually used in client components
-  - Use specific Supabase .select() columns instead of '*' to reduce data transfer
-  - Item had 11 fields, ProductItem has 5 - about 50% reduction in serialization overhead
-  - Fields like active, displayOrder are only used server-side (filtering/sorting); don't send to client
-
----
-
