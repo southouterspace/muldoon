@@ -24,6 +24,7 @@ export interface OrderRow {
   id: number;
   userId: number;
   status: OrderStatus;
+  paid: boolean;
   totalCents: number;
   note: string | null;
   createdAt: string;
@@ -31,12 +32,16 @@ export interface OrderRow {
   userEmail: string;
 }
 
+interface ColumnHandlers {
+  onStatusChange: (orderId: number, status: OrderStatus) => Promise<void>;
+  onPaidChange: (orderId: number, paid: boolean) => Promise<void>;
+}
+
 /**
- * Create columns with status change handler
+ * Create columns with handlers
  */
-export function createColumns(
-  onStatusChange: (orderId: number, status: OrderStatus) => Promise<void>
-): ColumnDef<OrderRow>[] {
+export function createColumns(handlers: ColumnHandlers): ColumnDef<OrderRow>[] {
+  const { onStatusChange, onPaidChange } = handlers;
   return [
     {
       id: "select",
@@ -98,11 +103,32 @@ export function createColumns(
       },
     },
     {
+      accessorKey: "paid",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Paid" />
+      ),
+      cell: ({ row }) => {
+        const paid = row.getValue("paid") as boolean;
+        const orderId = row.original.id;
+        return (
+          <Checkbox
+            aria-label="Mark as paid"
+            checked={paid}
+            onCheckedChange={(checked) => onPaidChange(orderId, !!checked)}
+          />
+        );
+      },
+    },
+    {
       accessorKey: "totalCents",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Total" />
       ),
-      cell: ({ row }) => formatCents(row.getValue("totalCents")),
+      cell: ({ row }) => (
+        <span className="font-mono">
+          {formatCents(row.getValue("totalCents"))}
+        </span>
+      ),
     },
     {
       accessorKey: "createdAt",

@@ -3,7 +3,7 @@
 import { Loader2, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { QuantityInput } from "@/components/ui/quantity-input";
 import type { CartItem } from "@/lib/types/database";
 import { formatCents } from "@/lib/utils/currency";
 
@@ -52,24 +52,18 @@ export function CartItemRow({
             {cartItem.playerNumber && <span>#{cartItem.playerNumber}</span>}
           </div>
           <p className="text-muted-foreground text-sm">
-            {formatCents(unitPrice)} each
+            <span className="font-mono">{formatCents(unitPrice)}</span> each
           </p>
         </div>
       </div>
 
       {/* Quantity and Actions */}
       <div className="flex flex-col items-end justify-between">
-        <p className="font-semibold">{formatCents(lineTotal)}</p>
+        <p className="font-mono font-semibold">{formatCents(lineTotal)}</p>
         <div className="flex items-center gap-2">
-          <Input
-            className="h-8 w-16 text-center"
+          <QuantityInput
             disabled={isPending}
-            max={99}
-            min={1}
-            onChange={(e) =>
-              onQuantityChange(cartItem.id, Number(e.target.value))
-            }
-            type="number"
+            onChange={(value) => onQuantityChange(cartItem.id, value)}
             value={cartItem.quantity}
           />
           <Button

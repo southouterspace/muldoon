@@ -3,9 +3,23 @@
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { QuantityInput } from "@/components/ui/quantity-input";
 import {
   Select,
   SelectContent,
@@ -14,7 +28,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Item } from "@/lib/types/database";
-import { requiresPlayerInfo } from "@/lib/types/database";
 import { formatCents } from "@/lib/utils/currency";
 
 interface ProductCardProps {
@@ -23,8 +36,6 @@ interface ProductCardProps {
     itemId: string;
     quantity: number;
     size: string | null;
-    playerName: string | null;
-    playerNumber: string | null;
   }) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -35,32 +46,21 @@ export function ProductCard({
   const [isPending, startTransition] = useTransition();
   const [quantity, setQuantity] = useState(1);
   const [size, setSize] = useState<string>("");
-  const [playerName, setPlayerName] = useState("");
-  const [playerNumber, setPlayerNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const hasSizes = item.sizes && item.sizes.length > 0;
-  const needsPlayerInfo = requiresPlayerInfo(item.number);
 
-  // Validate if all required fields are filled
-  const isValid =
-    quantity >= 1 &&
-    quantity <= 99 &&
-    (!hasSizes || size !== "") &&
-    (!needsPlayerInfo ||
-      (playerName.trim() !== "" && playerNumber.trim() !== ""));
+  const isValid = quantity >= 1 && quantity <= 99 && (!hasSizes || size !== "");
 
   function resetForm(): void {
     setQuantity(1);
     setSize("");
-    setPlayerName("");
-    setPlayerNumber("");
     setError(null);
   }
 
   function handleAddToCart(): void {
     if (!onAddToCart) {
-      setError("Add to cart is not available");
+      setError("Add to order is not available");
       return;
     }
 
@@ -68,106 +68,88 @@ export function ProductCard({
     startTransition(async () => {
       const result = await onAddToCart({
         itemId: item.id,
-        quantity,
+        quantity: Number.parseInt(String(quantity), 10),
         size: hasSizes ? size : null,
-        playerName: needsPlayerInfo ? playerName.trim() : null,
-        playerNumber: needsPlayerInfo ? playerNumber.trim() : null,
       });
 
       if (result.success) {
         resetForm();
       } else {
-        setError(result.error || "Failed to add to cart");
+        setError(result.error || "Failed to add to order");
       }
     });
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      {item.imageUrl && (
-        <div className="relative aspect-square bg-muted">
+    <Card>
+      <CardHeader>
+        {item.imageUrl ? (
           <Image
             alt={item.name}
-            className="object-cover"
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            className="aspect-square w-full rounded-md object-cover"
+            height={256}
             src={item.imageUrl}
+            width={256}
           />
-        </div>
-      )}
-      {!item.imageUrl && (
-        <div className="flex aspect-square items-center justify-center bg-muted">
-          <span className="text-muted-foreground">No image</span>
-        </div>
-      )}
-      <div className="space-y-4 p-4">
-        <div>
-          <h3 className="font-semibold">{item.name}</h3>
-          <p className="text-muted-foreground">{formatCents(item.costCents)}</p>
-        </div>
-
-        {hasSizes && (
-          <div className="space-y-2">
-            <Label htmlFor={`size-${item.id}`}>Size</Label>
-            <Select disabled={isPending} onValueChange={setSize} value={size}>
-              <SelectTrigger className="w-full" id={`size-${item.id}`}>
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                {item.sizes?.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        ) : (
+          <div className="flex aspect-square items-center justify-center rounded-md bg-muted">
+            <span className="text-muted-foreground text-sm">No image</span>
           </div>
         )}
+        <CardTitle>{item.name}</CardTitle>
+        <CardDescription>
+          <Badge className="font-mono" variant="secondary">
+            {formatCents(item.costCents)}
+          </Badge>
+        </CardDescription>
+      </CardHeader>
 
-        {needsPlayerInfo && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor={`player-name-${item.id}`}>Player Name</Label>
-              <Input
+      <CardContent>
+        <FieldGroup>
+          <div className="flex gap-4">
+            {hasSizes && (
+              <Field>
+                <FieldLabel htmlFor={`size-${item.id}`}>Size</FieldLabel>
+                <Select
+                  disabled={isPending}
+                  onValueChange={setSize}
+                  value={size}
+                >
+                  <SelectTrigger id={`size-${item.id}`} size="default">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {item.sizes?.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
+            <Field>
+              <FieldLabel htmlFor={`quantity-${item.id}`}>Qty</FieldLabel>
+              <QuantityInput
                 disabled={isPending}
-                id={`player-name-${item.id}`}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Enter player name"
-                value={playerName}
+                id={`quantity-${item.id}`}
+                onChange={setQuantity}
+                value={quantity}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`player-number-${item.id}`}>Player Number</Label>
-              <Input
-                disabled={isPending}
-                id={`player-number-${item.id}`}
-                onChange={(e) => setPlayerNumber(e.target.value)}
-                placeholder="Enter player number"
-                value={playerNumber}
-              />
-            </div>
-          </>
-        )}
+            </Field>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor={`quantity-${item.id}`}>Quantity</Label>
-          <Input
-            disabled={isPending}
-            id={`quantity-${item.id}`}
-            max={99}
-            min={1}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            type="number"
-            value={quantity}
-          />
-        </div>
+          {error && <FieldError>{error}</FieldError>}
+        </FieldGroup>
+      </CardContent>
 
-        {error && <p className="text-destructive text-sm">{error}</p>}
-
+      <CardFooter>
         <Button
           className="w-full"
           disabled={!isValid || isPending || !onAddToCart}
           onClick={handleAddToCart}
+          size="lg"
         >
           {isPending ? (
             <>
@@ -175,10 +157,10 @@ export function ProductCard({
               Adding...
             </>
           ) : (
-            "Add to Cart"
+            "Add to Order"
           )}
         </Button>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

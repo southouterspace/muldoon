@@ -67,7 +67,6 @@ async function deleteImage(
  * Zod schema for validating item input
  */
 const itemSchema = z.object({
-  number: z.coerce.number().int().positive(),
   name: z.string().min(1, "Name is required"),
   price: z.coerce.number().min(0, "Price must be non-negative"),
   active: z
@@ -102,7 +101,6 @@ const itemSchema = z.object({
  */
 export async function createItem(formData: FormData): Promise<ActionResult> {
   const parsed = itemSchema.safeParse({
-    number: formData.get("number"),
     name: formData.get("name"),
     price: formData.get("price"),
     active: formData.get("active") ?? "true",
@@ -115,29 +113,17 @@ export async function createItem(formData: FormData): Promise<ActionResult> {
     return { success: false, error: firstError?.message ?? "Invalid input" };
   }
 
-  const { number, name, price, active, sizes, link } = parsed.data;
+  const { name, price, active, sizes, link } = parsed.data;
 
   // Convert price from dollars to cents
   const costCents = Math.round(price * 100);
 
   const supabase = await createClient();
 
-  // Check if item number already exists
-  const { data: existingItem } = await supabase
-    .from("Item")
-    .select("id")
-    .eq("number", number)
-    .single();
-
-  if (existingItem) {
-    return { success: false, error: `Item number ${number} already exists` };
-  }
-
   // Insert the item and get the new ID
   const { data: newItem, error } = await supabase
     .from("Item")
     .insert({
-      number,
       name,
       costCents,
       active,
@@ -190,7 +176,6 @@ export async function updateItem(
   formData: FormData
 ): Promise<ActionResult> {
   const parsed = itemSchema.safeParse({
-    number: formData.get("number"),
     name: formData.get("name"),
     price: formData.get("price"),
     active: formData.get("active") ?? "true",
@@ -203,24 +188,12 @@ export async function updateItem(
     return { success: false, error: firstError?.message ?? "Invalid input" };
   }
 
-  const { number, name, price, active, sizes, link } = parsed.data;
+  const { name, price, active, sizes, link } = parsed.data;
 
   // Convert price from dollars to cents
   const costCents = Math.round(price * 100);
 
   const supabase = await createClient();
-
-  // Check if item number already exists for a different item
-  const { data: existingItem } = await supabase
-    .from("Item")
-    .select("id")
-    .eq("number", number)
-    .neq("id", id)
-    .single();
-
-  if (existingItem) {
-    return { success: false, error: `Item number ${number} already exists` };
-  }
 
   // Get current item to check for existing image
   const { data: currentItem } = await supabase
@@ -258,7 +231,6 @@ export async function updateItem(
 
   // Build update object
   const updateData: Record<string, unknown> = {
-    number,
     name,
     costCents,
     active,
@@ -277,6 +249,125 @@ export async function updateItem(
 
   if (error) {
     return { success: false, error: "Failed to update item" };
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+/**
+ * Update the display order of an item
+ */
+export async function updateDisplayOrder(
+  id: string,
+  newOrder: number
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("Item")
+    .update({
+      displayOrder: newOrder,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { success: false, error: "Failed to update display order" };
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+/**
+ * Swap display order between two items
+ */
+export async function swapDisplayOrder(
+  id1: string,
+  order1: number,
+  id2: string,
+  order2: number
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  // Update first item
+  const { error: error1 } = await supabase
+    .from("Item")
+    .update({ displayOrder: order2, updatedAt: new Date().toISOString() })
+    .eq("id", id1);
+
+  if (error1) {
+    return { success: false, error: "Failed to update display order" };
+  }
+
+  // Update second item
+  const { error: error2 } = await supabase
+    .from("Item")
+    .update({ displayOrder: order1, updatedAt: new Date().toISOString() })
+    .eq("id", id2);
+
+  if (error2) {
+    return { success: false, error: "Failed to update display order" };
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+/**
+ * Move an item to a specific position, shifting other items as needed
+ */
+export async function moveToPosition(
+  id: string,
+  targetPosition: number
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  // Get all items sorted by displayOrder
+  const { data: items, error: fetchError } = await supabase
+    .from("Item")
+    .select("id, displayOrder")
+    .order("displayOrder", { ascending: true });
+
+  if (fetchError || !items) {
+    return { success: false, error: "Failed to fetch items" };
+  }
+
+  // Find current item
+  const currentIndex = items.findIndex(
+    (item: { id: string; displayOrder: number }) => item.id === id
+  );
+  if (currentIndex === -1) {
+    return { success: false, error: "Item not found" };
+  }
+
+  // Remove item from current position and insert at target
+  const [movedItem] = items.splice(currentIndex, 1);
+  items.splice(targetPosition - 1, 0, movedItem);
+
+  // Update all items with new sequential positions
+  const updates = items.map(
+    (item: { id: string; displayOrder: number }, index: number) => ({
+      id: item.id,
+      displayOrder: index + 1,
+      updatedAt: new Date().toISOString(),
+    })
+  );
+
+  // Batch update all items
+  for (const update of updates) {
+    const { error } = await supabase
+      .from("Item")
+      .update({
+        displayOrder: update.displayOrder,
+        updatedAt: update.updatedAt,
+      })
+      .eq("id", update.id);
+
+    if (error) {
+      return { success: false, error: "Failed to update display order" };
+    }
   }
 
   revalidatePath("/admin");

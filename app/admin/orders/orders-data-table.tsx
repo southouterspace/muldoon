@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/select";
 import type { OrderStatus } from "@/lib/types/database";
 
-import { bulkUpdateOrderStatus, updateOrderStatus } from "./actions";
+import {
+  bulkUpdateOrderStatus,
+  updateOrderPaid,
+  updateOrderStatus,
+} from "./actions";
 import { createColumns, type OrderRow } from "./columns";
 
 interface OrdersDataTableProps {
@@ -61,6 +65,19 @@ export function OrdersDataTable({
     []
   );
 
+  // Handle paid status change
+  const handlePaidChange = useCallback(
+    (orderId: number, paid: boolean): Promise<void> => {
+      return new Promise((resolve) => {
+        startTransition(async () => {
+          await updateOrderPaid(orderId, paid);
+          resolve();
+        });
+      });
+    },
+    []
+  );
+
   // Handle bulk status change - uses selectedOrderIds from closure
   const handleBulkStatusChange = useCallback(
     async (status: OrderStatus): Promise<void> => {
@@ -71,8 +88,12 @@ export function OrdersDataTable({
   );
 
   const columns = useMemo(
-    () => createColumns(handleStatusChange),
-    [handleStatusChange]
+    () =>
+      createColumns({
+        onStatusChange: handleStatusChange,
+        onPaidChange: handlePaidChange,
+      }),
+    [handleStatusChange, handlePaidChange]
   );
 
   // Status filter dropdown and bulk update button in toolbar
@@ -104,10 +125,9 @@ export function OrdersDataTable({
       <DataTable
         columns={columns}
         data={filteredOrders}
-        filterColumn="userEmail"
-        filterPlaceholder="Filter by customer email..."
         onRowSelectionChange={setRowSelection}
         rowSelection={rowSelection}
+        tableId="admin-orders"
         toolbar={toolbar}
       />
       <BulkStatusUpdateDialog

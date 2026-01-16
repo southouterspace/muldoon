@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Upload, X } from "lucide-react";
+import { DollarSign, ImagePlus, Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useDropzone } from "react-dropzone";
@@ -13,8 +13,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group";
+import { Separator } from "@/components/ui/separator";
 import type { Item } from "@/lib/types/database";
 
 interface ItemFormProps {
@@ -106,18 +118,9 @@ export function ItemForm({
 
   function getButtonText(): string {
     if (isPending) {
-      return isEditMode ? "Updating..." : "Creating...";
+      return isEditMode ? "Saving..." : "Creating...";
     }
-    return isEditMode ? "Update" : "Create";
-  }
-
-  function getDropzoneClasses(): string {
-    const baseClasses =
-      "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors";
-    if (isDragActive) {
-      return `${baseClasses} border-primary bg-primary/10`;
-    }
-    return `${baseClasses} border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50`;
+    return isEditMode ? "Save Changes" : "Create Item";
   }
 
   // Determine what image to display
@@ -126,126 +129,171 @@ export function ItemForm({
   const isLocalPreview = Boolean(previewUrl);
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit}>
-        <CardHeader>
-          <CardTitle>{isEditMode ? "Edit Item" : "Create Item"}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
-              {error}
-            </div>
-          )}
+    <form onSubmit={handleSubmit}>
+      {error && (
+        <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+          {error}
+        </div>
+      )}
 
-          <div className="space-y-2">
-            <Label>Product Image</Label>
+      <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+        {/* Image Upload Section */}
+        <Card className="h-fit">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Product Image</CardTitle>
+          </CardHeader>
+          <CardContent>
             {displayImageUrl ? (
-              <div className="relative inline-block">
+              <div className="group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
                 <Image
                   alt="Product preview"
-                  className="rounded-lg border object-contain"
-                  height={200}
+                  className="object-contain p-4"
+                  fill
+                  sizes="320px"
                   src={displayImageUrl}
-                  style={{ maxWidth: "200px", maxHeight: "200px" }}
                   unoptimized={isLocalPreview}
-                  width={200}
                 />
                 <button
                   aria-label="Remove image"
-                  className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90"
+                  className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
                   onClick={handleRemoveImage}
                   type="button"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="size-4" />
                 </button>
               </div>
             ) : (
-              <div {...getRootProps()} className={getDropzoneClasses()}>
+              <div
+                {...getRootProps()}
+                className={`flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+                }`}
+              >
                 <input {...getInputProps()} />
-                <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                {isDragActive ? (
-                  <p className="text-muted-foreground text-sm">
-                    Drop the image here...
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Drag & drop an image here, or click to select
-                  </p>
-                )}
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <div className="rounded-full bg-muted p-3">
+                    <ImagePlus className="size-6" />
+                  </div>
+                  <div className="text-center text-sm">
+                    {isDragActive ? (
+                      <p className="font-medium text-primary">
+                        Drop image here
+                      </p>
+                    ) : (
+                      <>
+                        <p className="font-medium">Drop image here</p>
+                        <p className="text-muted-foreground/70">
+                          or click to browse
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
-            <Input
-              defaultValue={item?.name ?? ""}
-              disabled={isPending}
-              id="name"
-              name="name"
-              placeholder="e.g., Jersey"
-              required
-            />
-          </div>
+        {/* Form Fields Section */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Item Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="name">Name</FieldLabel>
+                <Input
+                  defaultValue={item?.name ?? ""}
+                  disabled={isPending}
+                  id="name"
+                  name="name"
+                  placeholder="e.g., Team Jersey"
+                  required
+                />
+              </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Price (USD) *</Label>
-            <Input
-              defaultValue={priceInDollars}
-              disabled={isPending}
-              id="price"
-              min="0"
-              name="price"
-              placeholder="e.g., 49.99"
-              required
-              step="0.01"
-              type="number"
-            />
-          </div>
+              <Field>
+                <FieldLabel htmlFor="price">Price</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <InputGroupText>
+                      <DollarSign className="size-4" />
+                    </InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    defaultValue={priceInDollars}
+                    disabled={isPending}
+                    id="price"
+                    min="0"
+                    name="price"
+                    placeholder="0.00"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                </InputGroup>
+              </Field>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={active}
-              disabled={isPending}
-              id="active"
-              onCheckedChange={(checked) => setActive(checked === true)}
-            />
-            <Label className="cursor-pointer" htmlFor="active">
-              Active
-            </Label>
-          </div>
+              <Separator />
 
-          <div className="space-y-2">
-            <Label htmlFor="sizes">Sizes (comma-separated)</Label>
-            <Input
-              defaultValue={sizesString}
-              disabled={isPending}
-              id="sizes"
-              name="sizes"
-              placeholder="e.g., S, M, L, XL"
-            />
-          </div>
+              <Field orientation="horizontal">
+                <Checkbox
+                  checked={active}
+                  disabled={isPending}
+                  id="active"
+                  onCheckedChange={(checked) => setActive(checked === true)}
+                />
+                <FieldLabel className="cursor-pointer" htmlFor="active">
+                  <span>Active</span>
+                  <FieldDescription>
+                    Active items are visible in the store
+                  </FieldDescription>
+                </FieldLabel>
+              </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="link">Link (optional)</Label>
-            <Input
-              defaultValue={item?.link ?? ""}
-              disabled={isPending}
-              id="link"
-              name="link"
-              placeholder="e.g., https://example.com/product"
-              type="url"
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full" disabled={isPending} type="submit">
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {getButtonText()}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+              <Separator />
+
+              <Field>
+                <FieldLabel htmlFor="sizes">Available Sizes</FieldLabel>
+                <Input
+                  defaultValue={sizesString}
+                  disabled={isPending}
+                  id="sizes"
+                  name="sizes"
+                  placeholder="S, M, L, XL"
+                />
+                <FieldDescription>
+                  Enter sizes separated by commas
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="link">External Link</FieldLabel>
+                <Input
+                  defaultValue={item?.link ?? ""}
+                  disabled={isPending}
+                  id="link"
+                  name="link"
+                  placeholder="https://..."
+                  type="url"
+                />
+                <FieldDescription>
+                  Optional link to external product page
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="border-t bg-muted/30 px-6 py-4">
+            <Button className="ml-auto" disabled={isPending} type="submit">
+              {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {getButtonText()}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </form>
   );
 }

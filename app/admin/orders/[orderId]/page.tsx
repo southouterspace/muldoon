@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { OrderDetailCard } from "@/components/admin/orders/order-detail-card";
 import { OrderItemsTable } from "@/components/admin/orders/order-items-table";
+import { OrderPageHeader } from "@/components/admin/orders/order-page-header";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types/database";
 
@@ -89,21 +90,39 @@ export default async function OrderDetailPage({
 
   const typedOrder = order as unknown as OrderFromDb;
 
+  // Fetch the user's linked players to display on sized items
+  const { data: userPlayers } = await supabase
+    .from("UserPlayer")
+    .select("player:Player(*)")
+    .eq("userId", typedOrder.userId);
+
+  // Get the first linked player (primary player)
+  const linkedPlayer =
+    userPlayers && userPlayers.length > 0
+      ? (userPlayers[0].player as {
+          firstName: string;
+          lastName: string;
+          jerseyNumber: number;
+        } | null)
+      : null;
+
   return (
-    <div className="space-y-6">
-      <h1 className="font-bold text-3xl">Order #{typedOrder.id}</h1>
+    <div className="space-y-8">
+      <OrderPageHeader
+        orderId={typedOrder.id}
+        status={typedOrder.status}
+        userEmail={typedOrder.user?.email ?? "Unknown"}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <OrderDetailCard
           createdAt={typedOrder.createdAt}
           note={typedOrder.note}
-          orderId={typedOrder.id}
-          status={typedOrder.status}
           updatedAt={typedOrder.updatedAt}
-          userEmail={typedOrder.user?.email ?? "Unknown"}
         />
 
         <OrderItemsTable
+          linkedPlayer={linkedPlayer}
           orderItems={typedOrder.orderItems}
           totalCents={typedOrder.totalCents}
         />

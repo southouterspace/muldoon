@@ -63,7 +63,9 @@ async function recalculateOrderTotal(orderId: number): Promise<void> {
 }
 
 /**
- * Get or create an OPEN order (cart) for the current user
+ * Get or create a DRAFT order (cart) for the current user.
+ * Uses .limit(1) with ordering to handle edge case of multiple drafts gracefully.
+ * A partial unique index enforces one draft per user at the database level.
  */
 export async function getOrCreateCart(): Promise<CartWithItems | null> {
   const userId = await getCurrentUserId();
@@ -74,8 +76,8 @@ export async function getOrCreateCart(): Promise<CartWithItems | null> {
 
   const supabase = await createClient();
 
-  // Try to find existing OPEN order
-  const { data: existingOrder } = await supabase
+  // Try to find existing DRAFT order (use oldest if multiples somehow exist)
+  const { data: existingOrders } = await supabase
     .from("Order")
     .select(
       `
@@ -87,19 +89,20 @@ export async function getOrCreateCart(): Promise<CartWithItems | null> {
     `
     )
     .eq("userId", userId)
-    .eq("status", "OPEN")
-    .single();
+    .eq("status", "DRAFT")
+    .order("createdAt", { ascending: true })
+    .limit(1);
 
-  if (existingOrder) {
-    return existingOrder as unknown as CartWithItems;
+  if (existingOrders && existingOrders.length > 0) {
+    return existingOrders[0] as unknown as CartWithItems;
   }
 
-  // Create new OPEN order
+  // Create new DRAFT order
   const { data: newOrder, error } = await supabase
     .from("Order")
     .insert({
       userId,
-      status: "OPEN",
+      status: "DRAFT",
       totalCents: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -107,7 +110,33 @@ export async function getOrCreateCart(): Promise<CartWithItems | null> {
     .select()
     .single();
 
-  if (error || !newOrder) {
+  // If insert fails due to unique constraint (race condition), fetch the existing one
+  if (error) {
+    if (error.code === "23505") {
+      // Unique violation - another request created it first, fetch it
+      const { data: raceOrder } = await supabase
+        .from("Order")
+        .select(
+          `
+          *,
+          orderItems:OrderItem(
+            *,
+            item:Item(*)
+          )
+        `
+        )
+        .eq("userId", userId)
+        .eq("status", "DRAFT")
+        .limit(1);
+
+      if (raceOrder && raceOrder.length > 0) {
+        return raceOrder[0] as unknown as CartWithItems;
+      }
+    }
+    return null;
+  }
+
+  if (!newOrder) {
     return null;
   }
 
@@ -125,8 +154,6 @@ const addToCartSchema = z.object({
   itemId: z.string().uuid(),
   quantity: z.coerce.number().int().min(1).max(99),
   size: z.string().nullable().optional(),
-  playerName: z.string().nullable().optional(),
-  playerNumber: z.string().nullable().optional(),
 });
 
 /**
@@ -144,15 +171,13 @@ export async function addToCart(formData: FormData): Promise<ActionResult> {
     itemId: formData.get("itemId"),
     quantity: formData.get("quantity"),
     size: formData.get("size") || null,
-    playerName: formData.get("playerName") || null,
-    playerNumber: formData.get("playerNumber") || null,
   });
 
   if (!parsed.success) {
     return { success: false, error: "Invalid input" };
   }
 
-  const { itemId, quantity, size, playerName, playerNumber } = parsed.data;
+  const { itemId, quantity, size } = parsed.data;
 
   const supabase = await createClient();
 
@@ -176,11 +201,7 @@ export async function addToCart(formData: FormData): Promise<ActionResult> {
 
   // Check if item with same options already exists in cart
   const existingItem = cart.orderItems.find(
-    (oi: CartItem) =>
-      oi.itemId === itemId &&
-      oi.size === (size ?? null) &&
-      oi.playerName === (playerName ?? null) &&
-      oi.playerNumber === (playerNumber ?? null)
+    (oi: CartItem) => oi.itemId === itemId && oi.size === (size ?? null)
   );
 
   if (existingItem) {
@@ -205,8 +226,6 @@ export async function addToCart(formData: FormData): Promise<ActionResult> {
       itemId,
       quantity,
       size: size ?? null,
-      playerName: playerName ?? null,
-      playerNumber: playerNumber ?? null,
       lineTotalCents,
       createdAt: new Date().toISOString(),
     });
@@ -279,9 +298,9 @@ export async function updateCartItem(
     return { success: false, error: "Cart item not found" };
   }
 
-  // Verify the order belongs to the user and is OPEN
+  // Verify the order belongs to the user and is DRAFT
   const order = orderItem.order as { userId: number; status: string };
-  if (order.userId !== userId || order.status !== "OPEN") {
+  if (order.userId !== userId || order.status !== "DRAFT") {
     return { success: false, error: "Cannot modify this cart item" };
   }
 
@@ -352,9 +371,9 @@ export async function removeFromCart(
     return { success: false, error: "Cart item not found" };
   }
 
-  // Verify the order belongs to the user and is OPEN
+  // Verify the order belongs to the user and is DRAFT
   const order = orderItem.order as { userId: number; status: string };
-  if (order.userId !== userId || order.status !== "OPEN") {
+  if (order.userId !== userId || order.status !== "DRAFT") {
     return { success: false, error: "Cannot modify this cart item" };
   }
 
@@ -374,6 +393,64 @@ export async function removeFromCart(
   // Revalidate paths
   revalidatePath("/cart");
   revalidatePath("/products");
+
+  return { success: true };
+}
+
+/**
+ * Submit the current cart (change status from DRAFT to OPEN)
+ */
+export async function submitOrder(): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const supabase = await createClient();
+
+  // Get the user's DRAFT order (use oldest if multiples somehow exist)
+  const { data: orders } = await supabase
+    .from("Order")
+    .select("id, totalCents")
+    .eq("userId", userId)
+    .eq("status", "DRAFT")
+    .order("createdAt", { ascending: true })
+    .limit(1);
+
+  const order = orders?.[0];
+
+  if (!order) {
+    return { success: false, error: "No draft order found" };
+  }
+
+  // Check that the order has items
+  const { data: orderItems } = await supabase
+    .from("OrderItem")
+    .select("id")
+    .eq("orderId", order.id)
+    .limit(1);
+
+  if (!orderItems || orderItems.length === 0) {
+    return { success: false, error: "Cannot submit an empty order" };
+  }
+
+  // Update status to OPEN
+  const { error } = await supabase
+    .from("Order")
+    .update({
+      status: "OPEN",
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", order.id);
+
+  if (error) {
+    return { success: false, error: "Failed to submit order" };
+  }
+
+  // Revalidate paths
+  revalidatePath("/cart");
+  revalidatePath("/orders");
 
   return { success: true };
 }

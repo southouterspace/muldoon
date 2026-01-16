@@ -1,7 +1,3 @@
-"use client";
-
-import { useTransition } from "react";
-import { updateOrderStatus } from "@/app/admin/orders/actions";
 import {
   Card,
   CardContent,
@@ -9,13 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { OrderStatus } from "@/lib/types/database";
-import { OrderStatusSelect } from "./order-status-select";
 
 interface OrderDetailCardProps {
-  orderId: number;
-  status: OrderStatus;
-  userEmail: string;
   createdAt: string;
   updatedAt: string;
   note: string | null;
@@ -35,43 +26,18 @@ function formatDate(dateString: string): string {
 }
 
 export function OrderDetailCard({
-  orderId,
-  status,
-  userEmail,
   createdAt,
   updatedAt,
   note,
 }: OrderDetailCardProps): React.ReactNode {
-  const [isPending, startTransition] = useTransition();
-
-  function handleStatusChange(newStatus: OrderStatus): void {
-    startTransition(async () => {
-      await updateOrderStatus(orderId, newStatus);
-    });
-  }
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Order Details</CardTitle>
-        <CardDescription>Order #{orderId}</CardDescription>
+        <CardDescription>Order information and notes</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-muted-foreground">Status</span>
-            <OrderStatusSelect
-              disabled={isPending}
-              onStatusChange={handleStatusChange}
-              value={status}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-muted-foreground">Customer</span>
-            <span>{userEmail}</span>
-          </div>
-
           <div className="flex items-center justify-between">
             <span className="font-medium text-muted-foreground">Created</span>
             <span>{formatDate(createdAt)}</span>

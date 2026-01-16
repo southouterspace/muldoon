@@ -1,5 +1,15 @@
+import { Store } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminUserMenu } from "@/components/admin/admin-user-menu";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -62,23 +72,46 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      <aside className="w-64 border-r bg-muted/30">
-        <div className="flex h-14 items-center border-b px-4">
-          <h1 className="font-semibold">Admin Dashboard</h1>
+    <div className="fixed inset-0 z-50 flex bg-background">
+      <aside className="flex h-screen w-20 flex-col items-center border-r bg-gradient-to-b from-muted/40 to-muted/20 py-4">
+        <div className="mb-4">
+          <Image
+            alt="Raptors Logo"
+            className="drop-shadow-md"
+            height={56}
+            priority
+            src="/raptor-logo.png"
+            width={56}
+          />
         </div>
-        <div className="p-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              asChild
+              className="mb-4 size-12 p-0"
+              size="lg"
+              variant="ghost"
+            >
+              <Link href="/">
+                <Store className="size-5" />
+                <span className="sr-only">Go to Store</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Go to Store</p>
+          </TooltipContent>
+        </Tooltip>
+        <div className="flex-1">
           <AdminNav />
         </div>
-        <div className="mt-auto border-t p-4">
-          <p className="truncate text-muted-foreground text-sm">
-            {adminUser.email}
-          </p>
+        <div className="mt-auto pt-4">
+          <AdminUserMenu email={adminUser.email} />
         </div>
       </aside>
-      <div className="flex-1">
-        <div className="container py-6">{children}</div>
-      </div>
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto py-6">{children}</div>
+      </main>
     </div>
   );
 }

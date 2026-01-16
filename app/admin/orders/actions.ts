@@ -16,7 +16,7 @@ interface ActionResult {
 /**
  * Zod schema for validating order status
  */
-const orderStatusSchema = z.enum(["OPEN", "PAID", "ORDERED", "RECEIVED"]);
+const orderStatusSchema = z.enum(["OPEN", "ORDERED", "RECEIVED"]);
 
 /**
  * Update the status of a single order
@@ -79,6 +79,31 @@ export async function bulkUpdateOrderStatus(
 
   if (error) {
     return { success: false, error: "Failed to update order statuses" };
+  }
+
+  revalidatePath("/admin/orders");
+  return { success: true };
+}
+
+/**
+ * Update the paid status of a single order
+ */
+export async function updateOrderPaid(
+  orderId: number,
+  paid: boolean
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("Order")
+    .update({
+      paid,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+
+  if (error) {
+    return { success: false, error: "Failed to update order paid status" };
   }
 
   revalidatePath("/admin/orders");

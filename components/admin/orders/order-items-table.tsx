@@ -30,14 +30,49 @@ interface OrderItemForTable {
   } | null;
 }
 
+interface LinkedPlayer {
+  firstName: string;
+  lastName: string;
+  jerseyNumber: number;
+}
+
 interface OrderItemsTableProps {
   orderItems: OrderItemForTable[];
   totalCents: number;
+  linkedPlayer?: LinkedPlayer | null;
+}
+
+function renderPlayerInfo(
+  orderItem: OrderItemForTable,
+  linkedPlayer?: LinkedPlayer | null
+): React.ReactNode {
+  // If order item has explicit player info, use it
+  if (orderItem.playerName || orderItem.playerNumber) {
+    return (
+      <span>
+        {orderItem.playerName}
+        {orderItem.playerName && orderItem.playerNumber ? " #" : ""}
+        {orderItem.playerNumber}
+      </span>
+    );
+  }
+
+  // If item has a size and user has a linked player, show that player's info
+  if (orderItem.size && linkedPlayer) {
+    return (
+      <span>
+        {linkedPlayer.lastName} #{linkedPlayer.jerseyNumber}
+      </span>
+    );
+  }
+
+  return "-";
 }
 
 export function OrderItemsTable({
   orderItems,
   totalCents,
+  linkedPlayer,
 }: OrderItemsTableProps): React.ReactNode {
   return (
     <Card>
@@ -63,23 +98,15 @@ export function OrderItemsTable({
                 </TableCell>
                 <TableCell>{orderItem.size ?? "-"}</TableCell>
                 <TableCell>
-                  {orderItem.playerName || orderItem.playerNumber ? (
-                    <span>
-                      {orderItem.playerName}
-                      {orderItem.playerName && orderItem.playerNumber
-                        ? " #"
-                        : ""}
-                      {orderItem.playerNumber}
-                    </span>
-                  ) : (
-                    "-"
-                  )}
+                  {renderPlayerInfo(orderItem, linkedPlayer)}
                 </TableCell>
                 <TableCell className="text-right">
                   {orderItem.quantity}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatCents(orderItem.lineTotalCents)}
+                  <span className="font-mono">
+                    {formatCents(orderItem.lineTotalCents)}
+                  </span>
                 </TableCell>
               </TableRow>
             ))}
@@ -88,7 +115,9 @@ export function OrderItemsTable({
       </CardContent>
       <CardFooter className="justify-between border-t">
         <span className="font-semibold">Order Total</span>
-        <span className="font-bold text-lg">{formatCents(totalCents)}</span>
+        <span className="font-bold font-mono text-lg">
+          {formatCents(totalCents)}
+        </span>
       </CardFooter>
     </Card>
   );

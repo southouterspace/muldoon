@@ -7,6 +7,7 @@ import Link from "next/link";
 import { DataTableColumnHeader } from "@/components/admin/data-table/data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,31 +17,76 @@ import {
 import type { Item } from "@/lib/types/database";
 import { formatCents } from "@/lib/utils/currency";
 
+interface ColumnHandlers {
+  onDelete: (id: string) => Promise<void>;
+}
+
 /**
- * Create columns with delete handler callback
+ * Create columns with handlers
  */
-export function createColumns(
-  onDelete: (id: string) => Promise<void>
-): ColumnDef<Item>[] {
+export function createColumns(handlers: ColumnHandlers): ColumnDef<Item>[] {
+  const { onDelete } = handlers;
+
   return [
     {
-      accessorKey: "number",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Number" />
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          aria-label="Select all"
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        />
       ),
+      cell: ({ row }) => (
+        <Checkbox
+          aria-label="Select row"
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "displayOrder",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Order" />
+      ),
+      cell: ({ row }) => {
+        const item = row.original;
+        return <span className="rounded px-2 py-1">{item.displayOrder}</span>;
+      },
     },
     {
       accessorKey: "name",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Name" />
       ),
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <Link
+            className="font-medium text-primary hover:underline"
+            href={`/admin/items/${item.id}`}
+          >
+            {item.name}
+          </Link>
+        );
+      },
     },
     {
       accessorKey: "costCents",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Price" />
       ),
-      cell: ({ row }) => formatCents(row.getValue("costCents")),
+      cell: ({ row }) => (
+        <span className="font-mono">
+          {formatCents(row.getValue("costCents"))}
+        </span>
+      ),
     },
     {
       accessorKey: "active",
@@ -66,7 +112,15 @@ export function createColumns(
         if (!sizes || sizes.length === 0) {
           return <span className="text-muted-foreground">—</span>;
         }
-        return sizes.join(", ");
+        return (
+          <div className="flex flex-wrap gap-1">
+            {sizes.map((size) => (
+              <Badge key={size} variant="outline">
+                {size}
+              </Badge>
+            ))}
+          </div>
+        );
       },
     },
     {

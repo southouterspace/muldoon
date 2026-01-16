@@ -16,6 +16,7 @@ export function PlayersDataTable({
       data={players}
       filterColumn="lastName"
       filterPlaceholder="Filter by last name..."
+      tableId="admin-players"
     />
   );
 }

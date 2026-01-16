@@ -1,6 +1,7 @@
+import { PlusIcon } from "lucide-react";
+import { PageTitle } from "@/components/admin/page-title";
 import { createClient } from "@/lib/supabase/server";
 import type { Item } from "@/lib/types/database";
-
 import { ItemsDataTable } from "./items/items-data-table";
 
 async function getItems(): Promise<Item[]> {
@@ -9,7 +10,7 @@ async function getItems(): Promise<Item[]> {
     const { data, error } = await supabase
       .from("Item")
       .select("*")
-      .order("number", { ascending: true });
+      .order("displayOrder", { ascending: true });
 
     if (error) {
       console.error("Error fetching items:", error);
@@ -27,11 +28,16 @@ export default async function AdminItemsPage(): Promise<React.ReactElement> {
   const items = await getItems();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="font-bold text-2xl">Items</h2>
-        <p className="text-muted-foreground">Manage your product catalog.</p>
-      </div>
+    <div className="space-y-8">
+      <PageTitle
+        cta={{
+          label: "New Item",
+          href: "/admin/items/new",
+          icon: <PlusIcon className="size-4" />,
+        }}
+        description="Manage your product catalog"
+        title="Products"
+      />
       <ItemsDataTable items={items} />
     </div>
   );

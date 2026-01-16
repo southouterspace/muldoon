@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/admin/page-title";
 import { createClient } from "@/lib/supabase/server";
 import { PlayersDataTable } from "./players-data-table";
 
@@ -43,9 +44,8 @@ export default async function AdminPlayersPage(): Promise<React.ReactNode> {
   if (error) {
     console.error("Error fetching players:", error);
     return (
-      <div className="space-y-6">
-        <h1 className="font-bold text-3xl">Players</h1>
-        <p className="text-muted-foreground">Failed to load players.</p>
+      <div className="space-y-8">
+        <PageTitle description="Failed to load players" title="Players" />
       </div>
     );
   }
@@ -67,8 +67,8 @@ export default async function AdminPlayersPage(): Promise<React.ReactNode> {
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-bold text-3xl">Players</h1>
+    <div className="space-y-8">
+      <PageTitle description="Manage team roster" title="Players" />
       <PlayersDataTable players={playersWithEmails} />
     </div>
   );

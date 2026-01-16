@@ -38,10 +38,10 @@ interface BulkStatusUpdateDialogProps {
 function getStatusBadgeVariant(
   status: OrderStatus
 ): "default" | "secondary" | "outline" {
-  if (status === "PAID") {
+  if (status === "ORDERED") {
     return "default";
   }
-  if (status === "ORDERED") {
+  if (status === "RECEIVED") {
     return "outline";
   }
   return "secondary";

@@ -2,8 +2,13 @@
 
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useOptimistic, useTransition } from "react";
-import { removeFromCart, updateCartItem } from "@/app/actions/cart";
+import { useRouter } from "next/navigation";
+import { useOptimistic, useState, useTransition } from "react";
+import {
+  removeFromCart,
+  submitOrder,
+  updateCartItem,
+} from "@/app/actions/cart";
 import { CartItemRow } from "@/components/cart/cart-item-row";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +31,9 @@ type OptimisticAction =
   | { type: "remove"; orderItemId: number };
 
 export function CartView({ cart }: CartViewProps): React.ReactElement {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const [optimisticItems, updateOptimisticItems] = useOptimistic<
     CartItem[],
@@ -80,6 +87,18 @@ export function CartView({ cart }: CartViewProps): React.ReactElement {
     });
   }
 
+  function handleSubmitOrder(): void {
+    setError(null);
+    startTransition(async () => {
+      const result = await submitOrder();
+      if (result.success) {
+        router.push("/orders");
+      } else {
+        setError(result.error ?? "Failed to submit order");
+      }
+    });
+  }
+
   // Empty cart state
   if (!cart || optimisticItems.length === 0) {
     return (
@@ -93,7 +112,7 @@ export function CartView({ cart }: CartViewProps): React.ReactElement {
             </p>
           </div>
           <Button asChild className="mt-4">
-            <Link href="/products">Browse Products</Link>
+            <Link href="/">Browse Products</Link>
           </Button>
         </CardContent>
       </Card>
@@ -130,20 +149,25 @@ export function CartView({ cart }: CartViewProps): React.ReactElement {
         <CardHeader>
           <CardTitle>Order Summary</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>{formatCents(subtotal)}</span>
-          </div>
-          <Separator />
+        <CardContent>
           <div className="flex justify-between font-semibold text-lg">
             <span>Total</span>
-            <span>{formatCents(subtotal)}</span>
+            <span className="font-mono">{formatCents(subtotal)}</span>
           </div>
         </CardContent>
-        <CardFooter>
-          <Button asChild className="w-full" size="lg">
-            <Link href="/checkout">Proceed to Checkout</Link>
+        <CardFooter className="flex-col gap-2">
+          {error && (
+            <div className="w-full rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          <Button
+            className="w-full"
+            disabled={isPending}
+            onClick={handleSubmitOrder}
+            size="lg"
+          >
+            {isPending ? "Submitting..." : "Submit Order"}
           </Button>
         </CardFooter>
       </Card>

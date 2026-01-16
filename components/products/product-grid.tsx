@@ -7,8 +7,6 @@ interface ProductGridProps {
     itemId: string;
     quantity: number;
     size: string | null;
-    playerName: string | null;
-    playerNumber: string | null;
   }) => Promise<{ success: boolean; error?: string }>;
 }
 

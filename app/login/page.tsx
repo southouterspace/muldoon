@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
+import { Logo } from "@/components/layout/logo";
 import {
   Card,
   CardContent,
@@ -6,21 +8,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LoginPage(): React.ReactNode {
+export default async function LoginPage(): Promise<React.ReactNode> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>
-            Enter your email to receive a magic link
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen flex-col">
+      <div className="flex flex-1 items-center justify-center">
+        <Logo showText={false} size={120} />
+      </div>
+      <div className="p-4 pb-8">
+        <Card className="mx-auto w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Sign In</CardTitle>
+            <CardDescription>
+              Enter your email to receive a magic link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginForm />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ async function getActiveItems(): Promise<Item[]> {
     .from("Item")
     .select("*")
     .eq("active", true)
-    .order("number", { ascending: true });
+    .order("displayOrder", { ascending: true });
 
   if (error) {
     console.error("Error fetching items:", error);
@@ -38,9 +38,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 font-bold text-3xl">
-        Raptors Spring 2026 Collection
-      </h1>
       <ProductGridClient items={items} />
     </div>
   );

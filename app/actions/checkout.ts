@@ -24,7 +24,7 @@ const submitOrderSchema = z.object({
 });
 
 /**
- * Submit the order: change status to PAID and send email notification
+ * Submit the order: mark as paid and send email notification
  */
 export async function submitOrder(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
@@ -81,11 +81,11 @@ export async function submitOrder(formData: FormData): Promise<ActionResult> {
     return { success: false, error: "Cart is empty" };
   }
 
-  // Update order status to PAID and save note
+  // Mark order as paid and save note
   const { error: updateError } = await supabase
     .from("Order")
     .update({
-      status: "PAID",
+      paid: true,
       note: note ?? null,
       updatedAt: new Date().toISOString(),
     })

@@ -1,7 +1,7 @@
 /**
  * Order status enum matching the PostgreSQL OrderStatus type
  */
-export type OrderStatus = "OPEN" | "PAID" | "ORDERED" | "RECEIVED";
+export type OrderStatus = "DRAFT" | "OPEN" | "ORDERED" | "RECEIVED";
 
 /**
  * User record from the User table
@@ -21,7 +21,6 @@ export interface User {
  */
 export interface Item {
   id: string;
-  number: number;
   name: string;
   costCents: number;
   active: boolean;
@@ -29,6 +28,7 @@ export interface Item {
   imageUrl: string | null;
   sizes: string[] | null;
   link: string | null;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +40,7 @@ export interface Order {
   id: number;
   userId: number;
   status: OrderStatus;
+  paid: boolean;
   totalCents: number;
   note: string | null;
   createdAt: string;
@@ -98,16 +99,17 @@ export interface UserPlayer {
 }
 
 /**
- * Item numbers that require player name and number fields
- * These are personalized items (jerseys, hoodies with player number)
+ * Item IDs (UUIDs) that require player info
+ * These are personalized items (jerseys, hoodies) where player name/number
+ * are automatically derived from the linked player
  */
-export const PLAYER_INFO_REQUIRED_ITEMS = [1, 2, 10, 19] as const;
+export const PLAYER_INFO_REQUIRED_ITEMS: readonly string[] = [];
 
 /**
- * Check if an item requires player name and number
- * @param itemNumber - The item's number field
+ * Check if an item requires player info (derived from linked player)
+ * @param itemId - The item's UUID
  * @returns true if the item requires player info
  */
-export function requiresPlayerInfo(itemNumber: number): boolean {
-  return (PLAYER_INFO_REQUIRED_ITEMS as readonly number[]).includes(itemNumber);
+export function requiresPlayerInfo(itemId: string): boolean {
+  return PLAYER_INFO_REQUIRED_ITEMS.includes(itemId);
 }
