@@ -3,6 +3,8 @@ import { PageTitle } from "@/components/admin/page-title";
 import { PlayersContent } from "./players-content";
 import { PlayersTableSkeleton } from "./players-table-skeleton";
 
+export const revalidate = 3600;
+
 export default function AdminPlayersPage(): React.ReactNode {
   return (
     <div className="space-y-8">
