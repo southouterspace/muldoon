@@ -2,6 +2,7 @@ import { Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminBottomNav } from "@/components/admin/admin-bottom-nav";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,8 @@ export default async function AdminLayout({
 
   return (
     <div className="fixed inset-0 z-50 flex bg-background pt-safe pb-safe">
-      <aside className="flex h-screen w-20 flex-col items-center border-r bg-gradient-to-b from-muted/40 to-muted/20 py-4">
+      {/* Desktop sidebar - hidden on mobile */}
+      <aside className="hidden h-screen w-20 flex-col items-center border-r bg-gradient-to-b from-muted/40 to-muted/20 py-4 md:flex">
         <div className="mb-4">
           <Image
             alt="Raptors Logo"
@@ -109,9 +111,14 @@ export default async function AdminLayout({
           <AdminUserMenu email={adminUser.email} />
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto py-6">{children}</div>
+
+      {/* Main content area - with bottom padding on mobile for tab bar */}
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <div className="container mx-auto px-4 py-6 md:px-6">{children}</div>
       </main>
+
+      {/* Mobile bottom tab bar */}
+      <AdminBottomNav email={adminUser.email} />
     </div>
   );
 }

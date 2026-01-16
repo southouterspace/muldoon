@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +12,6 @@ export function LoginForm(): React.ReactNode {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>
@@ -18,7 +19,6 @@ export function LoginForm(): React.ReactNode {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setSuccess(false);
 
     const supabase = createClient();
 
@@ -36,21 +36,16 @@ export function LoginForm(): React.ReactNode {
       return;
     }
 
-    setSuccess(true);
-  }
-
-  if (success) {
-    return (
-      <div className="text-center text-muted-foreground text-sm">
-        Check your email for the magic link!
-      </div>
-    );
+    toast.success("Check your email for the magic link!");
+    setEmail("");
   }
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label className="sr-only" htmlFor="email">
+          Email
+        </Label>
         <Input
           disabled={isLoading}
           id="email"
