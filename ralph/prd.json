@@ -191,8 +191,8 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created itemsByDisplayOrder Map for O(1) lookups. Refactored handleMoveUp/Down to use Map instead of findIndex+array access. canMoveUp now has empty deps (uses displayOrder), canMoveDown uses items.length. positions array memoized with items.length dependency."
     },
     {
       "id": "US-014",
@@ -205,8 +205,8 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Both callbacks now use useCallback with minimal dependency: only updateOptimisticItems. startTransition was removed from deps per linter (stable reference from useTransition)."
     },
     {
       "id": "US-015",
@@ -219,8 +219,8 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Created ProductItem type with only 5 fields (id, name, costCents, imageUrl, sizes) vs Item's 11 fields. Updated ProductGridContent to select only needed fields from database. Reduces ~50% serialization overhead."
     }
   ]
 }

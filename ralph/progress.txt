@@ -12,6 +12,9 @@ Started: 2026-01-16
 - When queries have data dependencies, use Supabase nested selects to combine into a single query (e.g., `user:User (email, userPlayers:UserPlayer (...))`)
 - For Suspense streaming: extract async data fetching into a separate async component, wrap with `<Suspense fallback={<Skeleton />}>` in the page
 - Skeleton components use `components/ui/skeleton.tsx` as the base - use string-based keys for mapped elements (e.g., `key={`row-${String(i)}`}`)
+- For memoization: use `items.length` instead of full array when only bounds checking is needed; create Map<key, Item> for O(1) lookups when finding related items
+- For useCallback: `startTransition` (from useTransition) and `updateOptimisticItems` (from useOptimistic) are stable references, don't include in deps
+- For client component props: create slimmed-down types (e.g., ProductItem) with only client-needed fields; use specific .select() columns in Supabase queries
 - TypeScript check: `bunx tsc --noEmit`
 - Lint check: `bun x ultracite check`
 - Build: `bun run build`
@@ -177,6 +180,52 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - The Suspense pattern is now well-established: extract async into *-content.tsx, create *-skeleton.tsx, wrap in Suspense in page.tsx
   - When refactoring pages for Suspense, console.error statements may need to be replaced with inline error UI in the content component
   - Count actual columns in the data table (via columns.tsx) to determine skeleton column count
+
+---
+
+## 2026-01-16 - US-013
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Fixed array dependencies in ItemsDataTable to prevent unnecessary re-renders
+- Created itemsByDisplayOrder Map (memoized) for O(1) lookups of adjacent items
+- Refactored handleMoveUp/handleMoveDown to use the Map instead of items.findIndex() and array access
+- Refactored canMoveUp to use item.displayOrder (empty dependency array)
+- Refactored canMoveDown to use items.length instead of full items array
+- Memoized positions array with useMemo depending on items.length
+- Files changed: app/admin/items/items-data-table.tsx
+- **Learnings for future iterations:**
+  - When items have a displayOrder property, use it directly instead of findIndex to determine position
+  - Create a Map<displayOrder, Item> for O(1) lookups when you need to find adjacent items
+  - canMove functions can often use item properties directly instead of searching the array
+  - For callbacks that only need to check bounds, items.length is sufficient (primitive, doesn't trigger re-memoization on item content changes)
+
+---
+
+## 2026-01-16 - US-014
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Memoized CartView callbacks to prevent unnecessary re-renders of CartItemRow children
+- Wrapped handleQuantityChange and handleRemove in useCallback
+- Dependencies are minimal: only updateOptimisticItems (stable from useOptimistic)
+- startTransition was removed from deps per linter (stable reference from useTransition)
+- Files changed: components/cart/cart-view.tsx
+- **Learnings for future iterations:**
+  - useTransition's startTransition and useOptimistic's updater function are stable references - don't need to be in dependency arrays
+  - Ultracite's exhaustive-deps rule will flag unnecessary dependencies and suggest removal
+  - When import and usage aren't in same edit, linter may auto-remove unused import - combine import+usage in one edit
+
+---
+
+## 2026-01-16 - US-015
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Minimized props passed to ProductGridClient to reduce serialization overhead
+- Created ProductItem type with only 5 fields needed by client (id, name, costCents, imageUrl, sizes)
+- Updated ProductGridContent query to select specific fields instead of '*'
+- Updated ProductGridClient, ProductGrid, ProductCard to use ProductItem type
+- Files changed: lib/types/database.ts, app/(main)/product-grid-content.tsx, components/products/product-grid-client.tsx, components/products/product-grid.tsx, components/products/product-card.tsx
+- **Learnings for future iterations:**
+  - Before creating slimmed types, analyze which fields are actually used in client components
+  - Use specific Supabase .select() columns instead of '*' to reduce data transfer
+  - Item had 11 fields, ProductItem has 5 - about 50% reduction in serialization overhead
+  - Fields like active, displayOrder are only used server-side (filtering/sorting); don't send to client
 
 ---
 
