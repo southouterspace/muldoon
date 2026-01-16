@@ -165,6 +165,7 @@ export async function createItem(formData: FormData): Promise<ActionResult> {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
 
@@ -252,6 +253,7 @@ export async function updateItem(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
 
@@ -277,6 +279,7 @@ export async function updateDisplayOrder(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
 
@@ -312,6 +315,7 @@ export async function swapDisplayOrder(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
 
@@ -376,6 +380,7 @@ export async function moveToPosition(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
 
@@ -408,5 +413,6 @@ export async function deleteItem(id: string): Promise<ActionResult> {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/"); // Invalidate product grid cache
   return { success: true };
 }
