@@ -88,7 +88,6 @@ export default async function AdminOrdersPage(): Promise<React.ReactNode> {
   const { data: orderItems, error: itemsError } = orderItemsResult;
 
   if (ordersError || itemsError) {
-    console.error("Error fetching data:", ordersError ?? itemsError);
     return (
       <div className="space-y-8">
         <PageTitle description="Failed to load orders" title="Orders" />

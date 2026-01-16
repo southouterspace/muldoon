@@ -13,13 +13,11 @@ async function getItems(): Promise<Item[]> {
       .order("displayOrder", { ascending: true });
 
     if (error) {
-      console.error("Error fetching items:", error);
       return [];
     }
 
     return (data as Item[]) ?? [];
   } catch {
-    console.error("Supabase not configured");
     return [];
   }
 }

@@ -18,7 +18,6 @@ async function getActiveItems(): Promise<Item[]> {
     .order("displayOrder", { ascending: true });
 
   if (error) {
-    console.error("Error fetching items:", error);
     return [];
   }
 

@@ -49,10 +49,7 @@ export function PlayerSelection({
 
     startTransition(async () => {
       for (const playerId of selectedPlayerIds) {
-        const result = await linkPlayerToUser(playerId);
-        if (!result.success) {
-          console.error(`Failed to link player ${playerId}:`, result.error);
-        }
+        await linkPlayerToUser(playerId);
       }
       router.push("/");
     });
