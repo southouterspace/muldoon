@@ -3,7 +3,7 @@
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition } from "react";
+import { useCallback, useOptimistic, useState, useTransition } from "react";
 import {
   removeFromCart,
   submitOrder,
@@ -64,28 +64,38 @@ export function CartView({ cart }: CartViewProps): React.ReactElement {
     0
   );
 
-  function handleQuantityChange(orderItemId: number, quantity: number): void {
-    if (quantity < 1 || quantity > 99) {
-      return;
-    }
+  const handleQuantityChange = useCallback(
+    (orderItemId: number, quantity: number): void => {
+      if (quantity < 1 || quantity > 99) {
+        return;
+      }
 
-    startTransition(async () => {
-      updateOptimisticItems({ type: "updateQuantity", orderItemId, quantity });
+      startTransition(async () => {
+        updateOptimisticItems({
+          type: "updateQuantity",
+          orderItemId,
+          quantity,
+        });
 
-      const formData = new FormData();
-      formData.set("orderItemId", String(orderItemId));
-      formData.set("quantity", String(quantity));
+        const formData = new FormData();
+        formData.set("orderItemId", String(orderItemId));
+        formData.set("quantity", String(quantity));
 
-      await updateCartItem(formData);
-    });
-  }
+        await updateCartItem(formData);
+      });
+    },
+    [updateOptimisticItems]
+  );
 
-  function handleRemove(orderItemId: number): void {
-    startTransition(async () => {
-      updateOptimisticItems({ type: "remove", orderItemId });
-      await removeFromCart(orderItemId);
-    });
-  }
+  const handleRemove = useCallback(
+    (orderItemId: number): void => {
+      startTransition(async () => {
+        updateOptimisticItems({ type: "remove", orderItemId });
+        await removeFromCart(orderItemId);
+      });
+    },
+    [updateOptimisticItems]
+  );
 
   function handleSubmitOrder(): void {
     setError(null);

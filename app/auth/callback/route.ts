@@ -95,7 +95,6 @@ async function hasLinkedPlayers(
     .limit(1);
 
   if (playersError) {
-    console.error("Error checking linked players:", playersError.message);
     return true; // Assume they have players on error to avoid blocking
   }
 

@@ -2,10 +2,10 @@
 
 import { addToCart } from "@/app/actions/cart";
 import { ProductGrid } from "@/components/products/product-grid";
-import type { Item } from "@/lib/types/database";
+import type { ProductItem } from "@/lib/types/database";
 
 interface ProductGridClientProps {
-  items: Item[];
+  items: ProductItem[];
 }
 
 export function ProductGridClient({
