@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Loader2, Upload } from "lucide-react";
+import { useCallback, useState, useTransition } from "react";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,8 +30,23 @@ export function ItemForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(item?.active ?? true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const isEditMode = Boolean(item);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setSelectedFile(acceptedFiles[0]);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [],
+    },
+    multiple: false,
+  });
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -38,6 +54,10 @@ export function ItemForm({
 
     const formData = new FormData(event.currentTarget);
     formData.set("active", active.toString());
+
+    if (selectedFile) {
+      formData.set("image", selectedFile);
+    }
 
     startTransition(async () => {
       const result = await onSubmit(formData);
@@ -60,6 +80,15 @@ export function ItemForm({
     return isEditMode ? "Update" : "Create";
   }
 
+  function getDropzoneClasses(): string {
+    const baseClasses =
+      "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors";
+    if (isDragActive) {
+      return `${baseClasses} border-primary bg-primary/10`;
+    }
+    return `${baseClasses} border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50`;
+  }
+
   return (
     <Card>
       <form onSubmit={handleSubmit}>
@@ -72,6 +101,28 @@ export function ItemForm({
               {error}
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Product Image</Label>
+            <div {...getRootProps()} className={getDropzoneClasses()}>
+              <input {...getInputProps()} />
+              <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+              {isDragActive ? (
+                <p className="text-muted-foreground text-sm">
+                  Drop the image here...
+                </p>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  Drag & drop an image here, or click to select
+                </p>
+              )}
+              {selectedFile && (
+                <p className="mt-2 text-primary text-sm">
+                  Selected: {selectedFile.name}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
