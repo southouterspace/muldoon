@@ -133,19 +133,49 @@ export async function createItem(formData: FormData): Promise<ActionResult> {
     return { success: false, error: `Item number ${number} already exists` };
   }
 
-  const { error } = await supabase.from("Item").insert({
-    number,
-    name,
-    costCents,
-    active,
-    sizes,
-    link,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
+  // Insert the item and get the new ID
+  const { data: newItem, error } = await supabase
+    .from("Item")
+    .insert({
+      number,
+      name,
+      costCents,
+      active,
+      sizes,
+      link,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !newItem) {
     return { success: false, error: "Failed to create item" };
+  }
+
+  // Handle image upload if provided
+  const imageFile = formData.get("image");
+  if (imageFile instanceof File && imageFile.size > 0) {
+    const uploadResult = await uploadImage(supabase, newItem.id, imageFile);
+    if (!uploadResult) {
+      return { success: false, error: "Failed to upload image" };
+    }
+
+    // Update the item with image paths
+    const { error: updateError } = await supabase
+      .from("Item")
+      .update({
+        imageStoragePath: uploadResult.storagePath,
+        imageUrl: uploadResult.publicUrl,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", newItem.id);
+
+    if (updateError) {
+      // Try to clean up the uploaded image
+      await deleteImage(supabase, uploadResult.storagePath);
+      return { success: false, error: "Failed to save image information" };
+    }
   }
 
   revalidatePath("/admin");
