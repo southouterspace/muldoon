@@ -1,8 +1,8 @@
 import { ProductCard } from "@/components/products/product-card";
-import type { Item } from "@/lib/types/database";
+import type { ProductItem } from "@/lib/types/database";
 
 interface ProductGridProps {
-  items: Item[];
+  items: ProductItem[];
   onAddToCart?: (data: {
     itemId: string;
     quantity: number;

@@ -34,6 +34,19 @@ export interface Item {
 }
 
 /**
+ * Slimmed-down Item type for client components
+ * Only includes fields needed for product display and cart actions
+ * Reduces serialization overhead when passing to client components
+ */
+export interface ProductItem {
+  id: string;
+  name: string;
+  costCents: number;
+  imageUrl: string | null;
+  sizes: string[] | null;
+}
+
+/**
  * Order record from the Order table
  */
 export interface Order {

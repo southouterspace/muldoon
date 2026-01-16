@@ -27,11 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Item } from "@/lib/types/database";
+import type { ProductItem } from "@/lib/types/database";
 import { formatCents } from "@/lib/utils/currency";
 
 interface ProductCardProps {
-  item: Item;
+  item: ProductItem;
   onAddToCart?: (data: {
     itemId: string;
     quantity: number;
