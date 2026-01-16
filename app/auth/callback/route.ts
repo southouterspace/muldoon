@@ -1,7 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 
-type SupabaseClientType = ReturnType<typeof createServerClient>;
-
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/supabase/admin";
@@ -30,75 +28,6 @@ function createSupabaseClient(
       },
     },
   });
-}
-
-async function getOrCreateUser(
-  supabase: SupabaseClientType,
-  supabaseId: string,
-  email: string,
-  isAdmin: boolean,
-  origin: string
-): Promise<{ userId: number } | { error: NextResponse }> {
-  const { data: existingUser, error: selectError } = await supabase
-    .from("User")
-    .select("id, isadmin")
-    .eq("supabaseid", supabaseId)
-    .single();
-
-  // PGRST116 = "No rows found" which is expected for new users
-  if (selectError && selectError.code !== "PGRST116") {
-    return { error: redirectToError(origin, selectError.message) };
-  }
-
-  if (existingUser) {
-    // User exists - update isadmin if it changed
-    if (existingUser.isadmin !== isAdmin) {
-      const { error: updateError } = await supabase
-        .from("User")
-        .update({ isadmin: isAdmin, updatedAt: new Date().toISOString() })
-        .eq("supabaseid", supabaseId);
-
-      if (updateError) {
-        return { error: redirectToError(origin, updateError.message) };
-      }
-    }
-    return { userId: existingUser.id };
-  }
-
-  // New user - create record and get the ID
-  const { data: newUser, error: insertError } = await supabase
-    .from("User")
-    .insert({ supabaseid: supabaseId, email, isadmin: isAdmin })
-    .select("id")
-    .single();
-
-  if (insertError || !newUser) {
-    return {
-      error: redirectToError(
-        origin,
-        insertError?.message || "user_creation_failed"
-      ),
-    };
-  }
-
-  return { userId: newUser.id };
-}
-
-async function hasLinkedPlayers(
-  supabase: SupabaseClientType,
-  userId: number
-): Promise<boolean> {
-  const { data: linkedPlayers, error: playersError } = await supabase
-    .from("UserPlayer")
-    .select("playerId")
-    .eq("userId", userId)
-    .limit(1);
-
-  if (playersError) {
-    return true; // Assume they have players on error to avoid blocking
-  }
-
-  return linkedPlayers !== null && linkedPlayers.length > 0;
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -140,21 +69,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const isAdmin = isAdminEmail(email);
-  const userResult = await getOrCreateUser(
-    supabase,
-    supabaseId,
-    email,
-    isAdmin,
-    origin
+
+  // Single RPC call handles user upsert and linked players check
+  const { data: rpcResult, error: rpcError } = await supabase.rpc(
+    "handle_auth_callback",
+    {
+      p_supabase_id: supabaseId,
+      p_email: email,
+      p_is_admin: isAdmin,
+    }
   );
 
-  if ("error" in userResult) {
-    return userResult.error;
+  if (rpcError || !rpcResult || rpcResult.length === 0) {
+    return redirectToError(origin, rpcError?.message || "user_creation_failed");
   }
 
-  // Check if user has linked players - redirect to onboarding if not
-  const hasPlayers = await hasLinkedPlayers(supabase, userResult.userId);
-  if (!hasPlayers) {
+  const { has_linked_players } = rpcResult[0];
+
+  // Redirect to onboarding if no linked players
+  if (!has_linked_players) {
     return NextResponse.redirect(`${origin}/onboarding/player`, {
       headers: response.headers,
     });
