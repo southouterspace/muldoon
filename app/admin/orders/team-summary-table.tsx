@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import type { TeamSummaryItem } from "./page";
+import type { TeamSummaryItem } from "./orders-content";
 
 interface TeamSummaryTableProps {
   items: TeamSummaryItem[];
