@@ -71,3 +71,35 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - getUserPlayers() returns ActionResult with optional data array - check for length > 0
   - Placeholder div for client component that will be integrated in US-006
 ---
+
+## 2026-01-15 19:10 - US-006
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Created PlayerSelection client component with multi-select checkboxes
+- Displays list of existing players (firstName, lastName, jerseyNumber)
+- Players in scrollable list with proper label/checkbox associations for accessibility
+- 'Add New Player' button reveals AddPlayerForm component
+- 'Continue' button disabled until selection made, calls linkPlayerToUser for each
+- Loading state with "Linking..." text while processing
+- Integrated into onboarding/player/page.tsx server component
+- Files changed: components/onboarding/player-selection.tsx, app/onboarding/player/page.tsx
+- **Learnings for future iterations:**
+  - Labels wrapping checkboxes need htmlFor and id for Biome accessibility rules
+  - Use `{players.map((player) => { const id = ...; return ... })}` pattern for dynamic IDs
+  - useTransition + useRouter for async actions followed by navigation
+  - State management: Set<string> for multi-select tracking
+---
+
+## 2026-01-15 19:10 - US-007
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Created AddPlayerForm client component (implemented alongside US-006)
+- Form fields: firstName, lastName, jerseyNumber with required validation
+- Submit calls createPlayer action, success triggers onSuccess callback
+- Error state displayed when creation fails
+- Loading state with "Adding..." text while submitting
+- Cancel button to close without adding
+- Files changed: components/onboarding/add-player-form.tsx
+- **Learnings for future iterations:**
+  - Use form action={handleSubmit} with FormData for server actions
+  - useTransition provides isPending state for loading indicators
+  - onSuccess callback pattern allows parent to update state (add to selected list)
+---
