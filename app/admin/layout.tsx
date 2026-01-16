@@ -14,36 +14,38 @@ import {
 import { getCachedUser } from "@/lib/supabase/cached";
 import { createClient } from "@/lib/supabase/server";
 
+type AdminUserResult =
+  | { status: "admin"; email: string }
+  | { status: "authenticated_not_admin" }
+  | { status: "unauthenticated" };
+
 /**
- * Get current user's email and verify admin status
+ * Get current user's email and verify admin status.
+ * Returns rich context to avoid redundant auth checks.
  */
-async function getAdminUser(): Promise<{ email: string } | null> {
-  try {
-    const {
-      data: { user },
-    } = await getCachedUser();
+async function getAdminUser(): Promise<AdminUserResult> {
+  const {
+    data: { user },
+  } = await getCachedUser();
 
-    if (!user) {
-      return null;
-    }
-
-    // Check if user exists and is admin
-    // Note: PostgreSQL lowercases unquoted column names
-    const supabase = await createClient();
-    const { data: dbUser } = await supabase
-      .from("User")
-      .select("isadmin")
-      .eq("supabaseid", user.id)
-      .single();
-
-    if (!dbUser?.isadmin) {
-      return null;
-    }
-
-    return { email: user.email ?? "Admin" };
-  } catch {
-    return null;
+  if (!user) {
+    return { status: "unauthenticated" };
   }
+
+  // Check if user exists and is admin
+  // Note: PostgreSQL lowercases unquoted column names
+  const supabase = await createClient();
+  const { data: dbUser } = await supabase
+    .from("User")
+    .select("isadmin")
+    .eq("supabaseid", user.id)
+    .single();
+
+  if (!dbUser?.isadmin) {
+    return { status: "authenticated_not_admin" };
+  }
+
+  return { status: "admin", email: user.email ?? "Admin" };
 }
 
 export default async function AdminLayout({
@@ -53,23 +55,12 @@ export default async function AdminLayout({
 }>): Promise<React.ReactElement> {
   const adminUser = await getAdminUser();
 
-  if (!adminUser) {
-    // Check if user is authenticated but not admin
-    try {
-      const {
-        data: { user },
-      } = await getCachedUser();
+  if (adminUser.status === "unauthenticated") {
+    redirect("/login");
+  }
 
-      if (user) {
-        // User is authenticated but not admin
-        redirect("/");
-      } else {
-        // User is not authenticated
-        redirect("/login");
-      }
-    } catch {
-      redirect("/login");
-    }
+  if (adminUser.status === "authenticated_not_admin") {
+    redirect("/");
   }
 
   return (
