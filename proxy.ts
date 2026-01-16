@@ -12,6 +12,11 @@ const PROTECTED_ROUTES = ["/cart", "/checkout"];
 const ADMIN_ROUTES = ["/admin"];
 
 /**
+ * Routes that should redirect authenticated users away (e.g., login page)
+ */
+const AUTH_REDIRECT_ROUTES = ["/login"];
+
+/**
  * Check if a path matches any of the route prefixes
  */
 function matchesRoutes(pathname: string, routes: string[]): boolean {
@@ -63,6 +68,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   // Check if route requires admin access
   const requiresAdmin = matchesRoutes(pathname, ADMIN_ROUTES);
+
+  // Redirect authenticated users away from login page
+  const isAuthRedirectRoute = matchesRoutes(pathname, AUTH_REDIRECT_ROUTES);
+  if (isAuthRedirectRoute && user) {
+    const homeUrl = new URL("/", request.url);
+    return NextResponse.redirect(homeUrl);
+  }
 
   // Redirect unauthenticated users to login
   if (requiresAuth && !user) {

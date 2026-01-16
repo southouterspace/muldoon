@@ -91,6 +91,16 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Use Next.js `<Image>` component for images
 - Use `next/head` or App Router metadata API for head elements
 - Use Server Components for async data fetching instead of async Client Components
+- **Proxy/Middleware (Next.js 16+):**
+  - `middleware.ts` is renamed to `proxy.ts` in Next.js 16+ (run `npx @next/codemod upgrade` to migrate)
+  - Proxy file must be in project root, not inside `app` or `pages` folders
+  - Use only for lightweight operations: header modification, A/B rewrites, optimistic auth redirects
+  - Avoid slow data fetching in proxy—adds ~60-70ms latency per request on Vercel
+  - Never rely solely on proxy for security; always validate in route handlers or server actions
+  - Prefer `rewrites` in `next.config.ts` for simple URL rewrites
+- **Instrumentation vs Proxy:**
+  - `instrumentation.ts` = one-time server startup tasks (monitoring, APM, global init)
+  - `proxy.ts` = per-request interception (redirects, rewrites, header modification)
 
 **React 19+:**
 - Use ref as a prop instead of `React.forwardRef`
