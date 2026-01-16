@@ -12,6 +12,48 @@
 - Use Number.parseInt(id, 10) with Number.isNaN() for safe ID parsing
 - The Item type already has `imageStoragePath: string | null` and `imageUrl: string | null` fields
 
+- react-dropzone useDropzone hook provides getRootProps, getInputProps, isDragActive for easy drag-and-drop implementation
+- File selection state should be tracked with useState<File | null> and passed via FormData on submit
+- Use Next.js Image component with `unoptimized` prop for blob URLs (local file previews)
+- URL.createObjectURL() for local file previews - must be cleaned up with URL.revokeObjectURL() in useEffect cleanup
+
+---
+
+## 2026-01-15 - US-003
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Added image preview using Next.js Image component (max 200x200, object-contain)
+  - Shows existing image from item.imageUrl when editing
+  - Added remove button with X icon positioned at top-right corner
+  - Implemented three-state image tracking: newFile, existingUrl, shouldDelete
+  - When removing: clears newFile, sets shouldDelete=true if existingUrl existed
+  - Form submission includes deleteImage flag when shouldDelete is true
+- Files changed:
+  - components/admin/items/item-form.tsx (added preview, remove button, state management)
+- **Learnings for future iterations:**
+  - TypeScript narrowing requires direct variable checks (displayImageUrl ? ...) not derived booleans
+  - Biome requires Next.js Image instead of <img> - use unoptimized={true} for blob URLs
+  - useEffect cleanup returns function to URL.revokeObjectURL() the blob URL
+---
+
+## 2026-01-15 - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Installed react-dropzone package
+  - Added dropzone component at top of ItemForm (before Name field)
+  - Configured for image/* with visual feedback on drag (border/background change)
+  - Uses Lucide Upload icon in placeholder
+  - Shows selected file name after selection
+  - File included in FormData on submit
+- Files changed:
+  - package.json (added react-dropzone)
+  - bun.lock (updated)
+  - components/admin/items/item-form.tsx (added dropzone UI and state)
+- **Learnings for future iterations:**
+  - react-dropzone accept format is { "image/*": [] } for all image types
+  - isDragActive boolean triggers visual hover state
+  - getRootProps() and getInputProps() wire up the div and hidden input
+  - File state must be managed separately and appended to FormData
 ---
 
 ## 2026-01-15 - US-001
