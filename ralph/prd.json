@@ -71,8 +71,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added uploadImage/deleteImage helpers and updated updateItem action to handle image uploads/deletions"
     },
     {
       "id": "US-005",

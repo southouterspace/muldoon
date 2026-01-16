@@ -16,7 +16,28 @@
 - File selection state should be tracked with useState<File | null> and passed via FormData on submit
 - Use Next.js Image component with `unoptimized` prop for blob URLs (local file previews)
 - URL.createObjectURL() for local file previews - must be cleaned up with URL.revokeObjectURL() in useEffect cleanup
+- Supabase Storage: upload with `supabase.storage.from(bucket).upload(path, file, { upsert: true })`, get URL with `.getPublicUrl(path)`
+- Check `formData.get("field") instanceof File && file.size > 0` to detect actual file uploads (empty files have size 0)
 
+---
+
+## 2026-01-16 - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Added uploadImage() helper to upload files to Supabase Storage
+  - Added deleteImage() helper to remove files from storage
+  - Modified updateItem server action to handle image FormData
+  - Uploads new images to product-images bucket at items/{itemId}/{filename}
+  - Deletes old images when replacing or when shouldDelete is true
+  - Preserves existing image values when no change is made
+  - Uses upsert: true on upload to allow replacing same-named files
+- Files changed:
+  - app/admin/items/actions.ts (added image upload/delete helpers, updated updateItem)
+- **Learnings for future iterations:**
+  - Supabase Storage upload uses supabase.storage.from(bucket).upload(path, file, options)
+  - getPublicUrl() returns { data: { publicUrl } } - no error property
+  - Use Record<string, unknown> for dynamic update objects to avoid type issues
+  - Check imageFile instanceof File && imageFile.size > 0 to detect real file uploads
 ---
 
 ## 2026-01-15 - US-003
