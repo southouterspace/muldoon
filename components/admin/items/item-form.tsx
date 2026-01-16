@@ -1,7 +1,9 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Loader2, Upload, X } from "lucide-react";
+import Image from "next/image";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +32,48 @@ export function ItemForm({
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(item?.active ?? true);
 
+  // Image state tracking
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [existingUrl, setExistingUrl] = useState<string | null>(
+    item?.imageUrl ?? null
+  );
+  const [shouldDelete, setShouldDelete] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const isEditMode = Boolean(item);
+
+  // Create and cleanup object URL for new file preview
+  useEffect(() => {
+    if (newFile) {
+      const url = URL.createObjectURL(newFile);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreviewUrl(null);
+  }, [newFile]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setNewFile(acceptedFiles[0]);
+      setShouldDelete(false);
+    }
+  }, []);
+
+  const handleRemoveImage = useCallback(() => {
+    setNewFile(null);
+    if (existingUrl) {
+      setShouldDelete(true);
+      setExistingUrl(null);
+    }
+  }, [existingUrl]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [],
+    },
+    multiple: false,
+  });
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -38,6 +81,14 @@ export function ItemForm({
 
     const formData = new FormData(event.currentTarget);
     formData.set("active", active.toString());
+
+    if (newFile) {
+      formData.set("image", newFile);
+    }
+
+    if (shouldDelete) {
+      formData.set("deleteImage", "true");
+    }
 
     startTransition(async () => {
       const result = await onSubmit(formData);
@@ -60,6 +111,20 @@ export function ItemForm({
     return isEditMode ? "Update" : "Create";
   }
 
+  function getDropzoneClasses(): string {
+    const baseClasses =
+      "flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors";
+    if (isDragActive) {
+      return `${baseClasses} border-primary bg-primary/10`;
+    }
+    return `${baseClasses} border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50`;
+  }
+
+  // Determine what image to display
+  const displayImageUrl = previewUrl ?? existingUrl;
+  // Blob URLs need unoptimized rendering
+  const isLocalPreview = Boolean(previewUrl);
+
   return (
     <Card>
       <form onSubmit={handleSubmit}>
@@ -74,17 +139,42 @@ export function ItemForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="number">Item Number *</Label>
-            <Input
-              defaultValue={item?.number ?? ""}
-              disabled={isPending}
-              id="number"
-              min="1"
-              name="number"
-              placeholder="e.g., 1"
-              required
-              type="number"
-            />
+            <Label>Product Image</Label>
+            {displayImageUrl ? (
+              <div className="relative inline-block">
+                <Image
+                  alt="Product preview"
+                  className="rounded-lg border object-contain"
+                  height={200}
+                  src={displayImageUrl}
+                  style={{ maxWidth: "200px", maxHeight: "200px" }}
+                  unoptimized={isLocalPreview}
+                  width={200}
+                />
+                <button
+                  aria-label="Remove image"
+                  className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90"
+                  onClick={handleRemoveImage}
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div {...getRootProps()} className={getDropzoneClasses()}>
+                <input {...getInputProps()} />
+                <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                {isDragActive ? (
+                  <p className="text-muted-foreground text-sm">
+                    Drop the image here...
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Drag & drop an image here, or click to select
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

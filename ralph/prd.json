@@ -1,450 +1,109 @@
 {
   "project": "Muldoon",
-  "branchName": "ralph/ecommerce-features",
-  "description": "Complete e-commerce experience for Raptors team merchandise store with magic link auth, product catalog, shopping cart, checkout with email notifications, and admin dashboard",
+  "branchName": "ralph/item-image-upload",
+  "description": "Item Image Upload - Add react-dropzone to admin item form for product image uploads with Supabase Storage",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Install dependencies and create Supabase clients",
-      "description": "As a developer, I need the required packages and Supabase client utilities so the app can communicate with Supabase for auth and data.",
+      "title": "Create Supabase Storage bucket and policies",
+      "description": "As a developer, I need a Supabase Storage bucket with proper policies to store product images.",
       "acceptanceCriteria": [
-        "@supabase/supabase-js, @supabase/ssr, resend, zod, @tanstack/react-table installed",
-        "lib/supabase/server.ts created with server-side client using cookies",
-        "lib/supabase/client.ts created with browser-side client",
-        "lib/supabase/middleware.ts created for middleware auth handling",
-        "lib/supabase/admin.ts created with isAdminEmail() function checking ADMIN_EMAIL env var",
+        "Create SQL migration that creates 'product-images' storage bucket",
+        "Configure bucket with public read access policy (anyone can view images)",
+        "Configure authenticated upload policy (only authenticated users can upload)",
+        "SQL migration file created in supabase/migrations/",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Completed migration: 20260115184437_create_product_images_bucket.sql"
     },
     {
       "id": "US-002",
-      "title": "Create TypeScript types and utilities",
-      "description": "As a developer, I need type definitions and utility functions so the codebase is type-safe and consistent.",
+      "title": "Add react-dropzone to item form",
+      "description": "As an admin, I want to drag-and-drop an image onto the item form so I can easily add product photos.",
       "acceptanceCriteria": [
-        "lib/types/database.ts defines: OrderStatus, User, Item, Order, OrderItem, CartItem, CartWithItems",
-        "lib/types/database.ts exports PLAYER_INFO_REQUIRED_ITEMS = [1, 2, 10, 19] and requiresPlayerInfo() function",
-        "lib/utils/currency.ts exports formatCents(cents: number): string returning formatted USD",
-        "Typecheck passes"
+        "Install react-dropzone package",
+        "Add dropzone component at the top of ItemForm (before Name field)",
+        "Dropzone accepts any image type (image/*) with no size limit",
+        "Dropzone shows visual feedback on drag hover (dashed border, background change)",
+        "Clicking the dropzone opens file picker",
+        "Use Lucide Upload icon in dropzone placeholder",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
       "passes": true,
-      "notes": ""
+      "notes": "Added dropzone to item-form.tsx with drag/drop, visual feedback, and Upload icon"
     },
     {
       "id": "US-003",
-      "title": "Create login page with magic link form",
-      "description": "As a user, I want to enter my email and receive a magic link so I can log in without a password.",
+      "title": "Display image preview with remove option",
+      "description": "As an admin, I want to see a preview of the selected/existing image and be able to remove it.",
       "acceptanceCriteria": [
-        "/app/login/page.tsx renders login card with email input",
-        "/components/auth/login-form.tsx is a client component with email input and submit button",
-        "Submitting calls supabase.auth.signInWithOtp() with redirect to /auth/callback",
-        "Success shows message 'Check your email for the magic link!'",
-        "Error displays error message from Supabase",
-        "Loading state shows spinner on button",
+        "Show thumbnail preview of selected image file (max 200x200, preserve aspect ratio)",
+        "Show existing image from item.imageUrl when editing an item",
+        "Display 'Remove' button (X icon) on image preview",
+        "Clicking remove clears the selected image and marks for deletion",
+        "When no image selected, show placeholder with dashed border and upload instructions",
+        "Track state: newFile (File | null), existingUrl (string | null), shouldDelete (boolean)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "Added image preview with Next.js Image, remove button (X icon), and three-state tracking (newFile, existingUrl, shouldDelete)"
     },
     {
       "id": "US-004",
-      "title": "Create auth callback handler",
-      "description": "As a user, I want clicking the magic link to complete my login and create my account if it's my first time.",
+      "title": "Upload image on form submit",
+      "description": "As an admin, when I submit the item form, the image should be uploaded to Supabase Storage and the database should be updated.",
       "acceptanceCriteria": [
-        "/app/auth/callback/route.ts exchanges code for session via exchangeCodeForSession()",
-        "If user doesn't exist in User table, creates record with supabaseId, email, and isAdmin based on ADMIN_EMAIL",
-        "If user exists, updates isAdmin if admin status changed",
-        "Redirects to / on success or /login?error=... on failure",
-        "Typecheck passes"
+        "Modify updateItem server action to accept image file in FormData",
+        "On submit with new image: upload to product-images bucket at path items/{itemId}/{filename}",
+        "Generate public URL using supabase.storage.from().getPublicUrl()",
+        "Update imageStoragePath with storage path and imageUrl with public URL",
+        "If image removed (shouldDelete true): delete old image from storage, set columns to null",
+        "If no image change: preserve existing values",
+        "Show loading state during form submission",
+        "Handle upload errors with user-friendly message",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
       "passes": true,
-      "notes": ""
+      "notes": "Added uploadImage/deleteImage helpers and updated updateItem action to handle image uploads/deletions"
     },
     {
       "id": "US-005",
-      "title": "Create route protection middleware",
-      "description": "As an admin, I want protected routes so only authorized users can access admin features.",
+      "title": "Handle image upload for new items",
+      "description": "As an admin, when I create a new item with an image, it should be uploaded correctly.",
       "acceptanceCriteria": [
-        "/middleware.ts refreshes Supabase session on each request",
-        "Unauthenticated users accessing /cart, /checkout, /admin/* redirected to /login",
-        "Non-admin users accessing /admin/* redirected to /",
-        "Admin check queries User table for isAdmin flag",
-        "Public routes (/, /products, /login) accessible without auth",
-        "Typecheck passes"
+        "Modify createItem server action to accept image file in FormData",
+        "After item insert, use new item ID to upload image to items/{itemId}/{filename}",
+        "Update the newly created item record with imageStoragePath and imageUrl",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
       "passes": true,
-      "notes": ""
+      "notes": "Modified createItem action to insert item first, get new ID, upload image, and update item with image paths"
     },
     {
       "id": "US-006",
-      "title": "Create sign out action",
-      "description": "As a user, I want to sign out so I can end my session.",
+      "title": "Display product images in storefront",
+      "description": "As a customer, I want to see product images on the product cards.",
       "acceptanceCriteria": [
-        "/app/actions/auth.ts exports signOut() server action",
-        "Calls supabase.auth.signOut() and redirects to /login",
-        "Typecheck passes"
+        "Update ProductCard component to display imageUrl when available",
+        "Use Next.js Image component for optimized loading",
+        "Show placeholder image or icon when no imageUrl exists",
+        "Images properly sized and don't break card layout",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
       "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-007",
-      "title": "Create header with navigation and cart badge",
-      "description": "As a user, I want to see navigation and my cart item count so I can move around the app and know what's in my cart.",
-      "acceptanceCriteria": [
-        "/components/layout/header.tsx shows logo linking to /",
-        "Shows 'Products' link to /products",
-        "Shows cart icon linking to /cart with badge showing total item quantity",
-        "Badge hidden when cart empty",
-        "/app/layout.tsx updated to include Header component",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 7,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-008",
-      "title": "Create products list page",
-      "description": "As a user, I want to see all available products so I can browse and shop.",
-      "acceptanceCriteria": [
-        "/app/products/page.tsx fetches active items from Supabase ordered by number",
-        "Renders ProductGrid component with items",
-        "/components/products/product-grid.tsx displays responsive grid (1-4 columns)",
-        "Page title is 'Raptors Spring 2026 Collection'",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 8,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-009",
-      "title": "Create product card with add-to-cart",
-      "description": "As a user, I want to see product details and add items to my cart with the correct options.",
-      "acceptanceCriteria": [
-        "/components/products/product-card.tsx is a client component",
-        "Shows item image (if available), name, and price formatted as currency",
-        "Shows size dropdown if item has sizes array (required to add to cart)",
-        "Shows player name and number inputs if item number is 1, 2, 10, or 19 (required to add to cart)",
-        "Shows quantity input (min 1, max 99)",
-        "'Add to Cart' button disabled until required fields filled",
-        "Button shows loading state while adding",
-        "Successful add resets form (quantity back to 1, player fields cleared)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 9,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-010",
-      "title": "Create cart server actions",
-      "description": "As a developer, I need server actions for cart operations so the cart persists in the database.",
-      "acceptanceCriteria": [
-        "/app/actions/cart.ts exports getOrCreateCart() - finds or creates OPEN order for current user",
-        "Exports addToCart(formData) - validates input with zod, adds/increments OrderItem",
-        "Exports updateCartItem(formData) - updates quantity/size of existing item",
-        "Exports removeFromCart(orderItemId) - deletes OrderItem",
-        "All mutations call recalculateOrderTotal() to update order total",
-        "All mutations call revalidatePath('/cart') and revalidatePath('/products')",
-        "Returns { success, error? } object",
-        "Typecheck passes"
-      ],
-      "priority": 10,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-011",
-      "title": "Create shopping cart page",
-      "description": "As a user, I want to view my cart, modify quantities, and remove items so I can manage my order before checkout.",
-      "acceptanceCriteria": [
-        "/app/cart/page.tsx redirects to /login if not authenticated",
-        "Fetches cart via getOrCreateCart() and passes to CartView",
-        "/components/cart/cart-view.tsx is a client component using useOptimistic for instant updates",
-        "Shows empty cart message with link to products when cart empty",
-        "Shows list of cart items with item name, size, player info, unit price, quantity input, line total",
-        "Quantity changes update total immediately (optimistically)",
-        "Remove button deletes item immediately (optimistically)",
-        "Shows order summary with subtotal and total",
-        "'Proceed to Checkout' button links to /checkout",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 11,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-012",
-      "title": "Create cart item row component",
-      "description": "As a user, I want each cart item to show all relevant details and allow editing.",
-      "acceptanceCriteria": [
-        "/components/cart/cart-item-row.tsx shows item image, name, size, player info",
-        "Shows unit price and line total (quantity x price)",
-        "Quantity input allows changing (triggers onQuantityChange callback)",
-        "Remove button (trash icon) triggers onRemove callback",
-        "Disabled state while pending",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 12,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-013",
-      "title": "Create checkout page",
-      "description": "As a user, I want to review my order and submit it so I can complete my purchase.",
-      "acceptanceCriteria": [
-        "/app/checkout/page.tsx redirects to /login if not authenticated",
-        "Redirects to /cart if cart empty",
-        "Shows order summary (item list with quantities and totals)",
-        "/components/checkout/checkout-form.tsx is a client component",
-        "Shows optional 'Order Notes' textarea",
-        "Shows total amount on submit button",
-        "Submit button shows loading state while processing",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 13,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-014",
-      "title": "Create checkout action with email notification",
-      "description": "As a user, I want my order submission to notify the admin so they can process it.",
-      "acceptanceCriteria": [
-        "/app/actions/checkout.ts exports submitOrder(formData) server action",
-        "Updates order status from OPEN to PAID",
-        "Saves optional note to order",
-        "Sends email to ADMIN_EMAIL via Resend with order details",
-        "Email includes: order ID, customer email, total, line items with sizes/player info",
-        "Redirects to /order-confirmation/[orderId] on success",
-        "Returns error if cart empty",
-        "Typecheck passes"
-      ],
-      "priority": 14,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-015",
-      "title": "Create order confirmation page",
-      "description": "As a user, I want to see confirmation after ordering so I know my order was received.",
-      "acceptanceCriteria": [
-        "/app/order-confirmation/[id]/page.tsx shows success icon and message",
-        "Displays order number and total",
-        "Shows 'Continue Shopping' button linking to /products",
-        "Returns 404 if order not found",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 15,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-016",
-      "title": "Add shadcn table and checkbox components",
-      "description": "As a developer, I need table and checkbox components so I can build data tables.",
-      "acceptanceCriteria": [
-        "Run bunx shadcn@latest add table successfully",
-        "Run bunx shadcn@latest add checkbox successfully",
-        "Components added to components/ui/",
-        "Typecheck passes"
-      ],
-      "priority": 16,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-017",
-      "title": "Create admin layout with navigation",
-      "description": "As an admin, I want a consistent admin interface with navigation so I can access different admin sections.",
-      "acceptanceCriteria": [
-        "/app/admin/layout.tsx verifies user is authenticated and isAdmin=true",
-        "Redirects non-admins to / and unauthenticated to /login",
-        "Shows header with 'Admin Dashboard' title and user email",
-        "/components/admin/admin-nav.tsx is a client component with nav links",
-        "Links to: Items (/admin), Orders (/admin/orders)",
-        "Active link highlighted based on current route",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 17,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-018",
-      "title": "Create generic data table component",
-      "description": "As a developer, I need a reusable data table component so I can build admin tables consistently.",
-      "acceptanceCriteria": [
-        "/components/admin/data-table/data-table.tsx wraps @tanstack/react-table",
-        "Accepts: columns, data, filterColumn, filterPlaceholder props",
-        "Supports column sorting via getSortedRowModel",
-        "Supports filtering via getFilteredRowModel",
-        "Supports pagination via getPaginationRowModel",
-        "Supports row selection via onRowSelectionChange",
-        "/components/admin/data-table/data-table-pagination.tsx shows page controls",
-        "Typecheck passes"
-      ],
-      "priority": 18,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-019",
-      "title": "Create items list page (admin dashboard)",
-      "description": "As an admin, I want to see all items in a table so I can manage the product catalog.",
-      "acceptanceCriteria": [
-        "/app/admin/page.tsx fetches all items ordered by number",
-        "/app/admin/items/columns.tsx defines columns: number, name, price (formatted), active (badge), sizes, actions",
-        "/app/admin/items/items-data-table.tsx wraps DataTable with 'New Item' button",
-        "Table sortable by any column",
-        "Actions column has dropdown with Edit/Delete options",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 19,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-020",
-      "title": "Create item form component",
-      "description": "As an admin, I want a form to create and edit items so I can manage the catalog.",
-      "acceptanceCriteria": [
-        "/components/admin/items/item-form.tsx is a client component",
-        "Fields: number (required), name (required), price in dollars (converted to cents), active toggle, sizes (comma-separated input), link (optional)",
-        "In edit mode, pre-fills with existing values",
-        "In create mode, fields empty",
-        "Submit button shows 'Create' or 'Update' based on mode",
-        "Loading state while submitting",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 20,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-021",
-      "title": "Create item CRUD server actions",
-      "description": "As a developer, I need server actions for item management.",
-      "acceptanceCriteria": [
-        "/app/admin/items/actions.ts exports createItem(formData) - validates and inserts new item",
-        "Exports updateItem(id, formData) - validates and updates existing item",
-        "Exports deleteItem(id) - deletes item (fails if item has order items)",
-        "All actions call revalidatePath('/admin')",
-        "Returns { success, error? } object",
-        "Typecheck passes"
-      ],
-      "priority": 21,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-022",
-      "title": "Create item create/edit pages",
-      "description": "As an admin, I want pages to create new items and edit existing ones.",
-      "acceptanceCriteria": [
-        "/app/admin/items/new/page.tsx renders ItemForm in create mode",
-        "/app/admin/items/[itemId]/page.tsx fetches item and renders ItemForm in edit mode",
-        "Edit page returns 404 if item not found",
-        "Success redirects back to /admin",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 22,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-023",
-      "title": "Create orders list page with filtering",
-      "description": "As an admin, I want to see all orders in a filterable table so I can manage order status.",
-      "acceptanceCriteria": [
-        "/app/admin/orders/page.tsx fetches orders with user email, ordered by createdAt desc",
-        "/app/admin/orders/columns.tsx defines columns: select (checkbox), ID, customer email, status (badge), total (formatted), date, actions",
-        "Status badge colors: OPEN=secondary, PAID=default, ORDERED=outline, RECEIVED=secondary",
-        "/components/admin/orders/order-status-select.tsx dropdown with all status options",
-        "/app/admin/orders/orders-data-table.tsx includes status filter dropdown",
-        "Filtering by status updates table immediately",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 23,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-024",
-      "title": "Create bulk order status update",
-      "description": "As an admin, I want to update multiple order statuses at once so I can efficiently process orders.",
-      "acceptanceCriteria": [
-        "Orders table has select-all checkbox in header",
-        "Individual rows have checkboxes",
-        "When rows selected, 'Update Status' button appears in toolbar",
-        "/components/admin/orders/bulk-status-update-dialog.tsx shows confirmation dialog",
-        "Dialog shows count of selected orders and status dropdown",
-        "Confirming calls bulk update action",
-        "Success deselects all rows and refreshes table",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 24,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-025",
-      "title": "Create order status update actions",
-      "description": "As a developer, I need server actions for updating order status.",
-      "acceptanceCriteria": [
-        "/app/admin/orders/actions.ts exports updateOrderStatus(orderId, status) - updates single order",
-        "Exports bulkUpdateOrderStatus(orderIds, status) - updates multiple orders",
-        "Both update updatedAt timestamp",
-        "Both call revalidatePath('/admin/orders')",
-        "Returns { success, error? } object",
-        "Typecheck passes"
-      ],
-      "priority": 25,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-026",
-      "title": "Create order detail page",
-      "description": "As an admin, I want to see full order details so I can review and process individual orders.",
-      "acceptanceCriteria": [
-        "/app/admin/orders/[orderId]/page.tsx fetches order with user and orderItems (including item details)",
-        "Returns 404 if order not found",
-        "/components/admin/orders/order-detail-card.tsx shows order ID, status (with inline update), dates",
-        "Shows customer email",
-        "/components/admin/orders/order-items-table.tsx lists line items with: item name, size, player name/number, quantity, line total",
-        "Shows order total",
-        "Shows order note if present",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 26,
-      "passes": true,
-      "notes": ""
+      "notes": "ProductCard already displays imageUrl with Next.js Image component; added Supabase domain to next.config.ts remotePatterns"
     }
   ]
 }
