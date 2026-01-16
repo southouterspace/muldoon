@@ -21,6 +21,22 @@
 
 ---
 
+## 2026-01-16 - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Modified createItem server action to handle image file uploads
+  - Insert item first with .select("id").single() to get new item ID
+  - Upload image to items/{itemId}/{filename} using existing uploadImage helper
+  - Update item record with imageStoragePath and imageUrl after upload
+  - Added error handling with cleanup (deletes uploaded image if update fails)
+- Files changed:
+  - app/admin/items/actions.ts (updated createItem to handle image uploads)
+- **Learnings for future iterations:**
+  - Supabase insert can chain .select() and .single() to return the new record
+  - For create flows with file uploads: insert first, get ID, upload, then update with file paths
+  - Always clean up uploaded files if subsequent database operations fail
+---
+
 ## 2026-01-16 - US-004
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - What was implemented:
