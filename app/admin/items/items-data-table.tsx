@@ -26,6 +26,15 @@ export function ItemsDataTable({
   const [error, setError] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
+  // Memoize a map from displayOrder to Item for O(1) lookups
+  const itemsByDisplayOrder = useMemo(() => {
+    const map = new Map<number, Item>();
+    for (const item of items) {
+      map.set(item.displayOrder, item);
+    }
+    return map;
+  }, [items]);
+
   const handleDelete = useCallback((id: string): Promise<void> => {
     setError(null);
     return new Promise((resolve) => {
@@ -41,12 +50,15 @@ export function ItemsDataTable({
 
   const handleMoveUp = useCallback(
     (item: Item) => {
-      const currentIndex = items.findIndex((i) => i.id === item.id);
-      if (currentIndex <= 0) {
+      if (item.displayOrder <= 1) {
         return;
       }
 
-      const previousItem = items[currentIndex - 1];
+      const previousItem = itemsByDisplayOrder.get(item.displayOrder - 1);
+      if (!previousItem) {
+        return;
+      }
+
       startTransition(async () => {
         const result = await swapDisplayOrder(
           item.id,
@@ -59,17 +71,16 @@ export function ItemsDataTable({
         }
       });
     },
-    [items]
+    [itemsByDisplayOrder]
   );
 
   const handleMoveDown = useCallback(
     (item: Item) => {
-      const currentIndex = items.findIndex((i) => i.id === item.id);
-      if (currentIndex < 0 || currentIndex >= items.length - 1) {
+      const nextItem = itemsByDisplayOrder.get(item.displayOrder + 1);
+      if (!nextItem) {
         return;
       }
 
-      const nextItem = items[currentIndex + 1];
       startTransition(async () => {
         const result = await swapDisplayOrder(
           item.id,
@@ -82,23 +93,18 @@ export function ItemsDataTable({
         }
       });
     },
-    [items]
+    [itemsByDisplayOrder]
   );
 
-  const canMoveUp = useCallback(
-    (item: Item) => {
-      const index = items.findIndex((i) => i.id === item.id);
-      return index > 0;
-    },
-    [items]
-  );
+  const canMoveUp = useCallback((item: Item) => {
+    return item.displayOrder > 1;
+  }, []);
 
   const canMoveDown = useCallback(
     (item: Item) => {
-      const index = items.findIndex((i) => i.id === item.id);
-      return index >= 0 && index < items.length - 1;
+      return item.displayOrder < items.length;
     },
-    [items]
+    [items.length]
   );
 
   const handleMoveToPosition = useCallback((item: Item, position: number) => {
@@ -118,7 +124,10 @@ export function ItemsDataTable({
     [handleDelete]
   );
 
-  const positions = Array.from({ length: items.length }, (_, i) => i + 1);
+  const positions = useMemo(
+    () => Array.from({ length: items.length }, (_, i) => i + 1),
+    [items.length]
+  );
 
   const renderRowContextMenu = useCallback(
     (item: Item) => (

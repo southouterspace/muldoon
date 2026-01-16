@@ -10,6 +10,8 @@ Started: 2026-01-16
 - Use `after()` from "next/server" for non-blocking background work (e.g., sending emails after redirect)
 - Use discriminated union types (with `status` field) for functions that can return multiple outcomes, to avoid redundant null-checks
 - When queries have data dependencies, use Supabase nested selects to combine into a single query (e.g., `user:User (email, userPlayers:UserPlayer (...))`)
+- For Suspense streaming: extract async data fetching into a separate async component, wrap with `<Suspense fallback={<Skeleton />}>` in the page
+- Skeleton components use `components/ui/skeleton.tsx` as the base - use string-based keys for mapped elements (e.g., `key={`row-${String(i)}`}`)
 - TypeScript check: `bunx tsc --noEmit`
 - Lint check: `bun x ultracite check`
 - Build: `bun run build`
@@ -117,6 +119,64 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Use grep pattern `from.*filename|import.*ComponentName` to find actual code imports
   - Documentation files (PRD, tasks) mentioning a file don't count as dependencies
+
+---
+
+## 2026-01-16 - US-009
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Removed all console.error statements from production code per Ultracite standards
+- Files changed: app/admin/orders/page.tsx, app/admin/page.tsx, app/(main)/page.tsx, components/onboarding/player-selection.tsx, app/auth/callback/route.ts
+- Note: app/actions/checkout.ts already had console.error removed in US-005
+- **Learnings for future iterations:**
+  - PRD line numbers may drift as code changes - always verify actual line numbers before editing
+  - Ultracite enforces no console statements in production code
+  - When removing error logging in catch blocks, consider if error handling behavior is still appropriate (in this case, all error cases already had sensible fallback behavior)
+
+---
+
+## 2026-01-16 - US-010
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Added Suspense boundary to Admin Orders Page for streaming content
+- Created reusable Skeleton UI component at components/ui/skeleton.tsx
+- Created OrdersTableSkeleton component with table structure mimicking the actual table
+- Extracted async data fetching into OrdersContent component
+- Wrapped OrdersContent with Suspense in page.tsx
+- Files changed: app/admin/orders/page.tsx (refactored), app/admin/orders/orders-content.tsx (new), app/admin/orders/orders-table-skeleton.tsx (new), app/admin/orders/team-summary-table.tsx (import change), components/ui/skeleton.tsx (new)
+- **Learnings for future iterations:**
+  - For Suspense streaming to work, extract async data fetching into a separate async component
+  - The page component becomes synchronous and just renders the Suspense boundary
+  - Use string-based keys with prefixes (e.g., `row-${index}`) instead of bare array indices to satisfy linter rules for skeleton components
+  - Move shared types to the content component when refactoring (e.g., TeamSummaryItem moved from page.tsx to orders-content.tsx)
+
+---
+
+## 2026-01-16 - US-011
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Added Suspense boundary to Main Page Product Grid for streaming content
+- Created ProductGridSkeleton component with card placeholders mimicking actual product cards (image, title, price badge, size/quantity inputs, button)
+- Created ProductGridContent async component to fetch active items
+- Moved getActiveItems() function from page.tsx to product-grid-content.tsx
+- Refactored page.tsx to wrap ProductGridContent in Suspense boundary
+- Files changed: app/(main)/page.tsx (refactored), app/(main)/product-grid-content.tsx (new), app/(main)/product-grid-skeleton.tsx (new)
+- **Learnings for future iterations:**
+  - The Suspense pattern established in US-010 applies consistently: extract async to separate component, wrap with Suspense
+  - Skeleton components should mimic the actual component structure for visual consistency during loading
+  - Card-based skeletons need different structure than table-based skeletons (grids vs rows)
+
+---
+
+## 2026-01-16 - US-012
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Added Suspense boundary to Admin Players Page for streaming content
+- Created PlayersTableSkeleton component with 3-column table structure (Player Name, Jersey Number, Linked Users)
+- Created PlayersContent async component to fetch players with linked user emails
+- Refactored page.tsx to wrap PlayersContent in Suspense boundary
+- Also removed console.error that was missed in US-009 (error handling now in PlayersContent)
+- Files changed: app/admin/players/page.tsx (refactored), app/admin/players/players-content.tsx (new), app/admin/players/players-table-skeleton.tsx (new)
+- **Learnings for future iterations:**
+  - The Suspense pattern is now well-established: extract async into *-content.tsx, create *-skeleton.tsx, wrap in Suspense in page.tsx
+  - When refactoring pages for Suspense, console.error statements may need to be replaced with inline error UI in the content component
+  - Count actual columns in the data table (via columns.tsx) to determine skeleton column count
 
 ---
 
