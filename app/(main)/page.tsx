@@ -21,7 +21,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto p-4">
       <Suspense fallback={<ProductGridSkeleton />}>
         <ProductGridContent />
       </Suspense>

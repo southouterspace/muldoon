@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { PlayersDataTable } from "./players-data-table";
+import { PlayerCard } from "./player-card";
 
 /**
  * Raw player data from Supabase with joined users via UserPlayer junction
@@ -37,28 +37,35 @@ export async function PlayersContent(): Promise<React.ReactNode> {
       )
     `
     )
-    .order("lastName", { ascending: true })
-    .order("firstName", { ascending: true });
+    .order("jerseyNumber", { ascending: true });
 
   if (error) {
     return <div className="text-destructive">Failed to load players</div>;
   }
 
-  // Transform data to flatten linked user emails for display
-  const playersWithEmails = ((players ?? []) as PlayerFromDb[]).map(
-    (player) => ({
-      id: player.id,
-      firstName: player.firstName,
-      lastName: player.lastName,
-      jerseyNumber: player.jerseyNumber,
-      linkedEmails: player.userPlayers
-        .map((up) => up.user?.email)
-        .filter(
-          (email): email is string => email !== null && email !== undefined
-        )
-        .join(", "),
-    })
-  );
+  const playersData = (players ?? []) as PlayerFromDb[];
 
-  return <PlayersDataTable players={playersWithEmails} />;
+  if (playersData.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground">No players found</div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {playersData.map((player) => (
+        <PlayerCard
+          fullName={`${player.firstName} ${player.lastName}`}
+          jerseyNumber={player.jerseyNumber}
+          key={player.id}
+          linkedEmails={player.userPlayers
+            .map((up) => up.user?.email)
+            .filter(
+              (email): email is string => email !== null && email !== undefined
+            )
+            .join(", ")}
+        />
+      ))}
+    </div>
+  );
 }

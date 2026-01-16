@@ -1,0 +1,100 @@
+# Ralph Progress Log
+Started: Fri Jan 16 08:42:26 CST 2026
+
+## Codebase Patterns
+- User table column names are lowercase: `supabaseid`, `isadmin` (not camelCase)
+- Use `CREATE OR REPLACE FUNCTION` for Supabase RPC functions with `SECURITY DEFINER`
+- Always use `IF NOT EXISTS` or `ON CONFLICT` for idempotent migrations
+
+---
+
+## 2026-01-16 08:44:33 - US-001
+- What was implemented:
+  - Created Supabase RPC function `handle_auth_callback` that consolidates user upsert and linked players check
+  - Function accepts p_supabase_id, p_email, p_is_admin parameters
+  - Performs INSERT ON CONFLICT UPDATE on User table
+  - Returns user_id and has_linked_players in single query using EXISTS subquery
+- Files changed:
+  - supabase/migrations/20260116084318_create_handle_auth_callback_rpc.sql (new)
+- **Learnings for future iterations:**
+  - User table uses lowercase column names (`supabaseid`, `isadmin`) not camelCase
+  - UserPlayer junction table has `userId` and `playerId` as composite primary key
+  - Use EXISTS subquery for boolean checks instead of LEFT JOIN for performance
+---
+
+## 2026-01-16 - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Replaced `getOrCreateUser()` and `hasLinkedPlayers()` functions with single `supabase.rpc('handle_auth_callback', ...)` call
+  - RPC call placed immediately after `exchangeCodeForSession()` completes
+  - Error handling preserved for RPC failures with same redirect pattern
+  - Redirect logic unchanged: `/onboarding/player` if no linked players, `/` otherwise
+  - Removed ~70 lines of code by consolidating two DB operations into one RPC call
+- Files changed:
+  - app/auth/callback/route.ts (modified)
+- **Learnings for future iterations:**
+  - Supabase RPC returns array even for single-row results - access via `rpcResult[0]`
+  - RPC function parameter names use `p_` prefix convention (e.g., `p_supabase_id`)
+  - Return columns from RPC use snake_case (`has_linked_players`) not camelCase
+---
+
+## 2026-01-16 - US-003
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Added `export const revalidate = 3600` to app/(main)/page.tsx for 1-hour ISR caching
+  - Added `revalidatePath('/')` to all admin item mutation functions for on-demand cache invalidation:
+    - createItem, updateItem, updateDisplayOrder, swapDisplayOrder, moveToPosition, deleteItem
+- Files changed:
+  - app/(main)/page.tsx (modified - added revalidate export)
+  - app/admin/items/actions.ts (modified - added revalidatePath('/') to all mutations)
+- **Learnings for future iterations:**
+  - Admin item actions originally only invalidated `/admin`, not `/` where products are displayed
+  - ISR revalidate exports must be at the page level, not in components
+  - When adding caching to data display pages, remember to check mutation actions for cache invalidation
+---
+
+## 2026-01-16 - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Added `export const revalidate = 3600` to app/admin/players/page.tsx for 1-hour ISR caching
+  - Added `revalidatePath('/admin/players')` to player mutation functions for on-demand cache invalidation:
+    - createPlayer, linkPlayerToUser
+- Files changed:
+  - app/admin/players/page.tsx (modified - added revalidate export)
+  - app/actions/players.ts (modified - added revalidatePath('/admin/players') to mutations)
+- **Learnings for future iterations:**
+  - Player actions originally only invalidated `/onboarding/player`, not `/admin/players` where roster is displayed
+  - Similar pattern to US-003: when adding ISR caching, audit all mutation paths that affect the cached data
+---
+
+## 2026-01-16 - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Removed server-side `supabase.auth.getUser()` check from login page
+  - Added `export const dynamic = 'force-static'` to make page fully static
+  - Converted from async function to sync function (no longer needs await)
+  - Removed unused imports (`redirect`, `createClient`)
+- Files changed:
+  - app/(auth)/login/page.tsx (modified - removed auth check, added force-static)
+- **Learnings for future iterations:**
+  - When making a page static, auth redirects must be handled elsewhere (middleware in US-006)
+  - `force-static` ensures the page is pre-rendered at build time with no server-side processing
+  - Removing async from page function is required when there are no awaited operations
+---
+
+## 2026-01-16 - US-006
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - Created new middleware.ts at project root for /login route auth checking
+  - Middleware creates Supabase client and calls getUser() to check auth status
+  - Authenticated users redirected to `/` before login page renders
+  - Unauthenticated users proceed to login page normally
+  - Matcher config restricts middleware to only /login route
+- Files changed:
+  - middleware.ts (new)
+- **Learnings for future iterations:**
+  - Existing `lib/supabase/middleware.ts` is a helper for session refresh, not the actual Next.js middleware
+  - Middleware.ts at project root is where Next.js route matching config goes
+  - Use `export const config = { matcher: ["/route"] }` to restrict middleware to specific routes
+  - Middleware runs before static pages, enabling auth checks without making pages dynamic
+---

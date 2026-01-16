@@ -51,7 +51,7 @@ export function QuantityInput({
 
   return (
     <InputGroup className={cn("w-24", className)}>
-      <InputGroupAddon>
+      <InputGroupAddon className="pl-0.5">
         <InputGroupButton
           aria-label="Decrease quantity"
           disabled={disabled || value <= min}
@@ -72,7 +72,7 @@ export function QuantityInput({
         type="text"
         value={value}
       />
-      <InputGroupAddon align="inline-end">
+      <InputGroupAddon align="inline-end" className="pr-0.5">
         <InputGroupButton
           aria-label="Increase quantity"
           disabled={disabled || value >= max}
