@@ -186,7 +186,7 @@ export async function createItem(formData: FormData): Promise<ActionResult> {
  * Update an existing item in the catalog
  */
 export async function updateItem(
-  id: number,
+  id: string,
   formData: FormData
 ): Promise<ActionResult> {
   const parsed = itemSchema.safeParse({
@@ -287,7 +287,7 @@ export async function updateItem(
  * Delete an item from the catalog
  * Fails if the item has associated order items
  */
-export async function deleteItem(id: number): Promise<ActionResult> {
+export async function deleteItem(id: string): Promise<ActionResult> {
   const supabase = await createClient();
 
   // Check if item has any order items

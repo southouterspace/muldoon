@@ -1,5 +1,15 @@
 {
   "project": "Muldoon",
+  "branchName": "ralph/players-user-linking",
+  "description": "Players table and user linking - allow users to link to players after magic link auth for personalized ordering",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Player database table",
+      "description": "As a developer, I need a Player table to store player information.",
+      "acceptanceCriteria": [
+        "Create Player table with columns: id (uuid, primary key, default gen_random_uuid()), firstName (text, not null), lastName (text, not null), jerseyNumber (integer, not null)",
+        "Add createdAt (timestamp, default now()) and updatedAt (timestamp, default now()) columns",
   "branchName": "ralph/item-image-upload",
   "description": "Item Image Upload - Add react-dropzone to admin item form for product image uploads with Supabase Storage",
   "userStories": [
@@ -20,6 +30,14 @@
     },
     {
       "id": "US-002",
+      "title": "Create UserPlayer junction table",
+      "description": "As a developer, I need a junction table to support many-to-many relationships between users and players.",
+      "acceptanceCriteria": [
+        "Create UserPlayer table with columns: userId (integer, foreign key to User.id), playerId (uuid, foreign key to Player.id)",
+        "Add composite primary key on (userId, playerId)",
+        "Add createdAt (timestamp, default now()) column",
+        "SQL migration file created in supabase/migrations/",
+        "Typecheck passes"
       "title": "Add react-dropzone to item form",
       "description": "As an admin, I want to drag-and-drop an image onto the item form so I can easily add product photos.",
       "acceptanceCriteria": [
@@ -38,6 +56,12 @@
     },
     {
       "id": "US-003",
+      "title": "Add Player and UserPlayer TypeScript types",
+      "description": "As a developer, I need TypeScript interfaces for the new tables.",
+      "acceptanceCriteria": [
+        "Add Player interface to lib/types/database.ts with: id (string), firstName (string), lastName (string), jerseyNumber (number), createdAt (string), updatedAt (string)",
+        "Add UserPlayer interface to lib/types/database.ts with: userId (number), playerId (string), createdAt (string)",
+        "Typecheck passes"
       "title": "Display image preview with remove option",
       "description": "As an admin, I want to see a preview of the selected/existing image and be able to remove it.",
       "acceptanceCriteria": [
@@ -56,6 +80,31 @@
     },
     {
       "id": "US-004",
+      "title": "Create player server actions",
+      "description": "As a developer, I need server actions for player operations.",
+      "acceptanceCriteria": [
+        "Create app/actions/players.ts with 'use server' directive",
+        "Export getPlayers() - fetches all players ordered by lastName, firstName",
+        "Export createPlayer(formData) - validates with zod (firstName, lastName, jerseyNumber required), creates player and links to current user",
+        "Export linkPlayerToUser(playerId) - creates UserPlayer record for current user and given playerId",
+        "Export getUserPlayers() - returns players linked to current user",
+        "All actions return { success, data?, error? } object",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create player selection page",
+      "description": "As a user logging in for the first time, I want to see a player selection page so I can link myself to a player.",
+      "acceptanceCriteria": [
+        "Create app/onboarding/player/page.tsx as a server component",
+        "Redirects to /login if not authenticated",
+        "Redirects to / if user already has linked players",
+        "Fetches all players via getPlayers() and passes to client component",
+        "Page title is 'Select Your Player'",
       "title": "Upload image on form submit",
       "description": "As an admin, when I submit the item form, the image should be uploaded to Supabase Storage and the database should be updated.",
       "acceptanceCriteria": [
@@ -87,6 +136,20 @@
       ],
       "priority": 5,
       "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create player selection client component",
+      "description": "As a user, I want to select existing players or add new ones.",
+      "acceptanceCriteria": [
+        "Create components/onboarding/player-selection.tsx as a client component",
+        "Displays list of existing players showing firstName, lastName, jerseyNumber",
+        "Players displayed in a scrollable list with checkboxes for multi-select",
+        "Shows 'Add New Player' button that reveals add player form",
+        "Shows 'Continue' button (disabled until at least one player selected or added)",
+        "Continue button calls linkPlayerToUser for each selected player, then redirects to /",
+        "Loading state while linking",
       "notes": "Modified createItem action to insert item first, get new ID, upload image, and update item with image paths"
     },
     {
@@ -103,6 +166,59 @@
       ],
       "priority": 6,
       "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create add player form component",
+      "description": "As a user, I want to add a new player if my player doesn't exist.",
+      "acceptanceCriteria": [
+        "Create components/onboarding/add-player-form.tsx as a client component",
+        "Form has fields: firstName (required), lastName (required), jerseyNumber (required, integer)",
+        "Submit button calls createPlayer action",
+        "On success, closes form and adds new player to selected list",
+        "Shows error message if creation fails",
+        "Loading state while submitting",
+        "Cancel button to close form without adding",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Implemented as part of US-006"
+    },
+    {
+      "id": "US-008",
+      "title": "Modify auth callback to redirect new users",
+      "description": "As a user completing magic link authentication, I should be redirected to player selection if I have no linked players.",
+      "acceptanceCriteria": [
+        "Modify app/auth/callback/route.ts to check if user has any linked players after auth",
+        "Query UserPlayer table for current user's userId",
+        "If no linked players, redirect to /onboarding/player instead of /",
+        "If user has linked players, redirect to / as normal",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add admin players view (read-only)",
+      "description": "As an admin, I want to see which users are linked to which players.",
+      "acceptanceCriteria": [
+        "Add 'Players' link to components/admin/admin-nav.tsx linking to /admin/players",
+        "Create app/admin/players/page.tsx as a server component",
+        "Fetches all players with their linked user emails via Supabase join",
+        "Displays table with columns: Player Name (firstName lastName), Jersey Number, Linked Users (comma-separated emails)",
+        "Uses DataTable component for consistent admin styling",
+        "No edit or delete functionality (read-only)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
       "notes": "ProductCard already displays imageUrl with Next.js Image component; added Supabase domain to next.config.ts remotePatterns"
     }
   ]

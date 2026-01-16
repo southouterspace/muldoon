@@ -122,7 +122,7 @@ export async function getOrCreateCart(): Promise<CartWithItems | null> {
  * Zod schema for validating addToCart input
  */
 const addToCartSchema = z.object({
-  itemId: z.coerce.number().int().positive(),
+  itemId: z.string().uuid(),
   quantity: z.coerce.number().int().min(1).max(99),
   size: z.string().nullable().optional(),
   playerName: z.string().nullable().optional(),

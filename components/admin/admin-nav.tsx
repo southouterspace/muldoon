@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, ShoppingBag } from "lucide-react";
+import { Package, ShoppingBag, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ const navItems = [
     label: "Orders",
     href: "/admin/orders",
     icon: ShoppingBag,
+  },
+  {
+    label: "Players",
+    href: "/admin/players",
+    icon: Users,
   },
 ] as const;
 

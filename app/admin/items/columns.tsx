@@ -20,7 +20,7 @@ import { formatCents } from "@/lib/utils/currency";
  * Create columns with delete handler callback
  */
 export function createColumns(
-  onDelete: (id: number) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 ): ColumnDef<Item>[] {
   return [
     {

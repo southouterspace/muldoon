@@ -12,7 +12,7 @@ export function ProductGridClient({
   items,
 }: ProductGridClientProps): React.ReactElement {
   async function handleAddToCart(data: {
-    itemId: number;
+    itemId: string;
     quantity: number;
     size: string | null;
     playerName: string | null;

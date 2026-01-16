@@ -20,7 +20,7 @@ export interface User {
  * Item record from the Item table (product catalog)
  */
 export interface Item {
-  id: number;
+  id: string;
   number: number;
   name: string;
   costCents: number;
@@ -52,7 +52,7 @@ export interface Order {
 export interface OrderItem {
   id: number;
   orderId: number;
-  itemId: number;
+  itemId: string;
   quantity: number;
   size: string | null;
   playerName: string | null;
@@ -73,6 +73,28 @@ export interface CartItem extends OrderItem {
  */
 export interface CartWithItems extends Order {
   orderItems: CartItem[];
+}
+
+/**
+ * Player record from the Player table
+ */
+export interface Player {
+  id: string;
+  firstName: string;
+  lastName: string;
+  jerseyNumber: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * UserPlayer junction record from the UserPlayer table
+ * Links users to players (many-to-many relationship)
+ */
+export interface UserPlayer {
+  userId: number;
+  playerId: string;
+  createdAt: string;
 }
 
 /**

@@ -21,7 +21,7 @@ export function ItemsDataTable({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const handleDelete = useCallback((id: number): Promise<void> => {
+  const handleDelete = useCallback((id: string): Promise<void> => {
     setError(null);
     return new Promise((resolve) => {
       startTransition(async () => {
