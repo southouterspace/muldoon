@@ -11,6 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -18,10 +19,9 @@ import { createClient } from "@/lib/supabase/server";
  */
 async function getAdminUser(): Promise<{ email: string } | null> {
   try {
-    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getCachedUser();
 
     if (!user) {
       return null;
@@ -29,6 +29,7 @@ async function getAdminUser(): Promise<{ email: string } | null> {
 
     // Check if user exists and is admin
     // Note: PostgreSQL lowercases unquoted column names
+    const supabase = await createClient();
     const { data: dbUser } = await supabase
       .from("User")
       .select("isadmin")
@@ -55,10 +56,9 @@ export default async function AdminLayout({
   if (!adminUser) {
     // Check if user is authenticated but not admin
     try {
-      const supabase = await createClient();
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getCachedUser();
 
       if (user) {
         // User is authenticated but not admin

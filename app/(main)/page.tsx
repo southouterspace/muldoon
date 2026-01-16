@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ProductGridClient } from "@/components/products/product-grid-client";
+import { getCachedUser } from "@/lib/supabase/cached";
 import { createClient } from "@/lib/supabase/server";
 import type { Item } from "@/lib/types/database";
 
@@ -25,10 +26,9 @@ async function getActiveItems(): Promise<Item[]> {
 }
 
 export default async function HomePage(): Promise<React.ReactElement> {
-  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getCachedUser();
 
   if (!user) {
     redirect("/login");
