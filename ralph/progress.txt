@@ -12,6 +12,7 @@ Started: Thu Jan 15 18:12:17 CST 2026
 - User.id is INTEGER (SERIAL), Player.id is UUID - match types in foreign keys
 - Zod v4: access validation errors via `parsed.error.issues[0]`, not `.errors`
 - Supabase join syntax for relations: `player:Player(*)` for junction tables
+- Use `ReturnType<typeof createServerClient>` for SupabaseClient type in route handlers
 
 ---
 
@@ -102,4 +103,20 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Use form action={handleSubmit} with FormData for server actions
   - useTransition provides isPending state for loading indicators
   - onSuccess callback pattern allows parent to update state (add to selected list)
+---
+
+## 2026-01-15 19:30 - US-008
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Modified auth callback to redirect new users without linked players
+- After auth completes, queries UserPlayer table to check for linked players
+- If no linked players: redirects to /onboarding/player
+- If has linked players: redirects to / (existing behavior)
+- Refactored auth callback to reduce cognitive complexity (extracted helper functions)
+- Files changed: app/auth/callback/route.ts
+- **Learnings for future iterations:**
+  - Use `ReturnType<typeof createServerClient>` for Supabase client type (not exported directly from @supabase/ssr)
+  - Extract helper functions to reduce cognitive complexity below 20 (Biome limit)
+  - Result types with discriminated unions: `{ userId: number } | { error: NextResponse }` for typed error handling
+  - For new user inserts, chain `.select("id").single()` to get the auto-generated ID
+  - On error checking linked players, default to allowing access (return true) to avoid blocking users
 ---
