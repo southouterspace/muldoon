@@ -18,7 +18,22 @@
 - URL.createObjectURL() for local file previews - must be cleaned up with URL.revokeObjectURL() in useEffect cleanup
 - Supabase Storage: upload with `supabase.storage.from(bucket).upload(path, file, { upsert: true })`, get URL with `.getPublicUrl(path)`
 - Check `formData.get("field") instanceof File && file.size > 0` to detect actual file uploads (empty files have size 0)
+- Next.js Image remotePatterns in next.config.ts must include external domains (e.g., *.supabase.co for Supabase Storage)
 
+---
+
+## 2026-01-16 - US-006
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- What was implemented:
+  - ProductCard component already had image display logic in place from prior work
+  - Added Supabase Storage domain wildcard (*.supabase.co) to next.config.ts remotePatterns
+  - This enables Next.js Image optimization for Supabase-hosted product images
+- Files changed:
+  - next.config.ts (added Supabase remote pattern for Image component)
+- **Learnings for future iterations:**
+  - Next.js Image component requires remote domains to be whitelisted in next.config.ts remotePatterns
+  - Use wildcard hostname pattern (*.supabase.co) to cover all Supabase project domains
+  - Always check next.config.ts when adding new image sources
 ---
 
 ## 2026-01-16 - US-005
