@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { Logo } from "@/components/layout/logo";
 import {
@@ -8,18 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/server";
 
-export default async function LoginPage(): Promise<React.ReactNode> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const dynamic = "force-static";
 
-  if (user) {
-    redirect("/");
-  }
-
+export default function LoginPage(): React.ReactNode {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1 items-center justify-center">

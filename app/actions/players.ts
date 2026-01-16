@@ -120,6 +120,7 @@ export async function createPlayer(
   }
 
   revalidatePath("/onboarding/player");
+  revalidatePath("/admin/players");
 
   return { success: true, data: player as Player };
 }
@@ -172,6 +173,7 @@ export async function linkPlayerToUser(
   }
 
   revalidatePath("/onboarding/player");
+  revalidatePath("/admin/players");
 
   return { success: true };
 }

@@ -4,6 +4,8 @@ import { getCachedUser } from "@/lib/supabase/cached";
 import { ProductGridContent } from "./product-grid-content";
 import { ProductGridSkeleton } from "./product-grid-skeleton";
 
+export const revalidate = 3600; // ISR: revalidate every hour
+
 export const metadata = {
   title: "Raptors Spring 2026 Collection",
   description: "Browse our spring 2026 merchandise collection",

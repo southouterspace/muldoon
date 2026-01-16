@@ -1,0 +1,17 @@
+# Ralph Progress Log - Performance Optimization Phase 2
+
+Branch: ralph/performance-optimization-phase2
+Started: 2026-01-16
+
+## Codebase Patterns
+- Use `Promise.all()` to parallelize independent Supabase queries for better performance
+- Use `getCachedUser()` from `lib/supabase/cached.ts` for deduplicated auth calls in server components
+- Use `after()` from "next/server" for non-blocking background work
+- For Suspense streaming: extract async data fetching into a separate async component
+- TypeScript check: `bunx tsc --noEmit`
+- Lint check: `bun x ultracite check`
+- Build: `bun run build`
+- Supabase migrations: create in supabase/migrations/ with timestamp prefix
+
+---
+
