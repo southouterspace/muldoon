@@ -1,0 +1,226 @@
+{
+  "project": "Muldoon",
+  "branchName": "ralph/performance-optimization",
+  "description": "Performance optimization for Muldoon Next.js app - parallelize queries, deduplicate auth, non-blocking email, remove dead code, optimize re-renders",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Parallelize Admin Orders Page Queries",
+      "description": "As an admin, I want the orders page to load faster by fetching orders and order items simultaneously.",
+      "acceptanceCriteria": [
+        "Wrap orders and orderItems queries in Promise.all() at app/admin/orders/page.tsx:47-82",
+        "Both queries execute concurrently instead of sequentially",
+        "Error handling preserved for both query results",
+        "Page renders correctly with same data",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Parallelize Batch Item Updates",
+      "description": "As an admin, I want item reordering to complete quickly even with many items.",
+      "acceptanceCriteria": [
+        "Refactor sequential loop at app/admin/items/actions.ts:358-371 to use Promise.all()",
+        "All item position updates execute concurrently",
+        "Error handling aggregates failures appropriately",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement React.cache() for Auth Deduplication",
+      "description": "As a developer, I want auth calls deduplicated per request to avoid redundant database queries.",
+      "acceptanceCriteria": [
+        "Create cached getUser() wrapper using React.cache() in lib/supabase/cached.ts",
+        "Export getCachedUser function that wraps supabase.auth.getUser()",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Use Cached Auth in Server Components",
+      "description": "As a developer, I want server components to use the cached auth function.",
+      "acceptanceCriteria": [
+        "Replace direct supabase.auth.getUser() with getCachedUser() in app/(main)/page.tsx",
+        "Replace direct supabase.auth.getUser() with getCachedUser() in app/(main)/cart/page.tsx",
+        "Replace direct supabase.auth.getUser() with getCachedUser() in app/admin/layout.tsx",
+        "Single auth call per request instead of multiple",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Non-blocking Email with Next.js after()",
+      "description": "As a user, I want checkout to redirect immediately without waiting for email to send.",
+      "acceptanceCriteria": [
+        "Import after from next/server in app/actions/checkout.ts",
+        "Move email sending logic (around lines 159-164) inside after() callback",
+        "Checkout redirect happens before email completes",
+        "Email errors logged but don't block user flow",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Fix Duplicate Auth Calls in Admin Layout",
+      "description": "As a developer, I want admin layout to make only one auth check instead of 2-3.",
+      "acceptanceCriteria": [
+        "Refactor app/admin/layout.tsx:21-73 to avoid redundant createClient() and getUser() calls",
+        "Return richer context from getAdminUser() to eliminate fallback auth check",
+        "Single supabase client instantiation per request",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Parallelize Order Detail Page Queries",
+      "description": "As an admin, I want order detail pages to load faster by fetching order and players in parallel.",
+      "acceptanceCriteria": [
+        "Refactor app/admin/orders/[orderId]/page.tsx:54-97 to use Promise.all()",
+        "Order and userPlayers queries execute concurrently",
+        "Error handling preserved",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Delete Unused Demo Component",
+      "description": "As a developer, I want dead code removed to reduce bundle size and maintenance burden.",
+      "acceptanceCriteria": [
+        "Delete components/component-example.tsx",
+        "Verify no imports reference this file (search codebase)",
+        "Build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Remove Console Statements from Production",
+      "description": "As a developer, I want console.error statements removed per Ultracite code standards.",
+      "acceptanceCriteria": [
+        "Remove console.error at app/admin/orders/page.tsx:85",
+        "Remove console.error at app/admin/page.tsx:16 and :22",
+        "Remove console.error at app/(main)/page.tsx:20",
+        "Remove console.error at components/onboarding/player-selection.tsx:54",
+        "Remove console.error at app/auth/callback/route.ts (locate exact line)",
+        "Remove console.error at app/actions/checkout.ts:167",
+        "Lint passes (bun x ultracite check)",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add Suspense Boundary to Admin Orders Page",
+      "description": "As a user, I want the orders page to feel faster by streaming content progressively.",
+      "acceptanceCriteria": [
+        "Add Suspense boundary around orders table in app/admin/orders/page.tsx",
+        "Create OrdersTableSkeleton component for loading state",
+        "Content streams progressively when loading",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add Suspense Boundary to Main Page Product Grid",
+      "description": "As a user, I want the product grid to feel faster by streaming content progressively.",
+      "acceptanceCriteria": [
+        "Add Suspense boundary around product grid in app/(main)/page.tsx",
+        "Create ProductGridSkeleton component for loading state",
+        "Content streams progressively when loading",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add Suspense Boundary to Admin Players Page",
+      "description": "As a user, I want the players page to feel faster by streaming content progressively.",
+      "acceptanceCriteria": [
+        "Add Suspense boundary around players table in app/admin/players/page.tsx",
+        "Create PlayersTableSkeleton component for loading state",
+        "Content streams progressively when loading",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Fix Array Dependencies in ItemsDataTable",
+      "description": "As a developer, I want callbacks properly memoized to prevent unnecessary re-renders.",
+      "acceptanceCriteria": [
+        "Memoize positions array with useMemo at app/admin/items/items-data-table.tsx:121",
+        "Refactor callbacks at lines 42-102 to avoid full items array dependency where possible",
+        "Use items.length instead of items where only length is needed",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Memoize CartView Callbacks",
+      "description": "As a developer, I want cart callbacks memoized to prevent child re-renders.",
+      "acceptanceCriteria": [
+        "Wrap handleQuantityChange in useCallback at components/cart/cart-view.tsx:67",
+        "Wrap handleRemove in useCallback at components/cart/cart-view.tsx:75",
+        "Verify dependencies are minimal and stable",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Minimize Props Passed to ProductGridClient",
+      "description": "As a developer, I want to reduce serialization overhead by passing only needed data to client components.",
+      "acceptanceCriteria": [
+        "Review Item type passed to ProductGridClient at app/(main)/page.tsx:37",
+        "Create slimmed-down ProductItem type with only client-needed fields if beneficial",
+        "Ensure ProductGridClient receives minimal required props",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

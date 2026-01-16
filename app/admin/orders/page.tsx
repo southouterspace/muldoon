@@ -43,43 +43,49 @@ export interface TeamSummaryItem {
 export default async function AdminOrdersPage(): Promise<React.ReactNode> {
   const supabase = await createClient();
 
-  // Fetch orders with user email, ordered by createdAt desc
-  const { data: orders, error: ordersError } = await supabase
-    .from("Order")
-    .select(
-      `
-      id,
-      userId,
-      status,
-      paid,
-      totalCents,
-      note,
-      createdAt,
-      updatedAt,
-      user:User!Order_userId_fkey (
-        email
-      )
-    `
-    )
-    .order("createdAt", { ascending: false });
-
-  // Fetch order items for team summary (exclude DRAFT orders)
-  const { data: orderItems, error: itemsError } = await supabase
-    .from("OrderItem")
-    .select(
-      `
-      id,
-      quantity,
-      size,
-      item:Item!OrderItem_itemId_fkey (
+  // Fetch orders and order items in parallel for better performance
+  const [ordersResult, orderItemsResult] = await Promise.all([
+    // Fetch orders with user email, ordered by createdAt desc
+    supabase
+      .from("Order")
+      .select(
+        `
         id,
-        name
-      ),
-      order:Order!OrderItem_orderId_fkey (
-        status
+        userId,
+        status,
+        paid,
+        totalCents,
+        note,
+        createdAt,
+        updatedAt,
+        user:User!Order_userId_fkey (
+          email
+        )
+      `
       )
-    `
-    );
+      .order("createdAt", { ascending: false }),
+
+    // Fetch order items for team summary (exclude DRAFT orders)
+    supabase
+      .from("OrderItem")
+      .select(
+        `
+        id,
+        quantity,
+        size,
+        item:Item!OrderItem_itemId_fkey (
+          id,
+          name
+        ),
+        order:Order!OrderItem_orderId_fkey (
+          status
+        )
+      `
+      ),
+  ]);
+
+  const { data: orders, error: ordersError } = ordersResult;
+  const { data: orderItems, error: itemsError } = orderItemsResult;
 
   if (ordersError || itemsError) {
     console.error("Error fetching data:", ordersError ?? itemsError);
