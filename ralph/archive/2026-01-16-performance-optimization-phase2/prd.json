@@ -1,0 +1,94 @@
+{
+  "project": "Muldoon",
+  "branchName": "ralph/performance-optimization-phase2",
+  "description": "Performance Optimization Phase 2 - Optimize magic link callback with Supabase RPC, add ISR caching to product grid and players page, make login page static",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Supabase RPC for User Authentication Flow",
+      "description": "As a user clicking a magic link, I want authentication to complete faster so I can start using the app sooner.",
+      "acceptanceCriteria": [
+        "Create Supabase database function `handle_auth_callback` that accepts supabase_id, email, and is_admin parameters",
+        "Function performs upsert on User table (INSERT ON CONFLICT UPDATE)",
+        "Function returns user ID and whether user has linked players in single query using LEFT JOIN on UserPlayer",
+        "Migration file created at supabase/migrations/ with timestamped filename",
+        "Migration runs successfully via supabase db push or similar",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Integrate RPC into Auth Callback Route",
+      "description": "As a developer, I want the auth callback to use the optimized RPC so users experience faster login.",
+      "acceptanceCriteria": [
+        "Replace getOrCreateUser() and hasLinkedPlayers() functions with single supabase.rpc('handle_auth_callback', ...) call",
+        "RPC called immediately after exchangeCodeForSession() completes",
+        "Error handling preserved for all failure cases (missing code, auth failure, RPC failure)",
+        "Redirect logic unchanged: onboarding/player if no linked players, home otherwise",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add ISR Caching to Product Grid",
+      "description": "As a user browsing products, I want the page to load instantly from cache since products rarely change.",
+      "acceptanceCriteria": [
+        "Add `export const revalidate = 3600` to app/(main)/page.tsx (1 hour cache)",
+        "Verify admin item mutations in app/admin/items/actions.ts call revalidatePath('/') for on-demand invalidation",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add ISR Caching to Admin Players Page",
+      "description": "As an admin viewing the roster, I want the page to load faster since player data rarely changes.",
+      "acceptanceCriteria": [
+        "Add `export const revalidate = 3600` to app/admin/players/page.tsx (1 hour cache)",
+        "Verify player mutations in app/actions/players.ts call revalidatePath('/admin/players') for on-demand invalidation",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Make Login Page Static",
+      "description": "As a user visiting the login page, I want it to load instantly without server-side processing.",
+      "acceptanceCriteria": [
+        "Remove server-side supabase.auth.getUser() check from app/(auth)/login/page.tsx",
+        "Add `export const dynamic = 'force-static'` to login page",
+        "Login form still renders and functions correctly",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill: login page loads without delay"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add Middleware Auth Redirect for Login Page",
+      "description": "As an authenticated user visiting /login, I want to be redirected to home without the page rendering.",
+      "acceptanceCriteria": [
+        "Create or update middleware.ts at project root to check auth on /login route",
+        "Redirect authenticated users (valid session cookie) to `/` before page renders",
+        "Unauthenticated users see login page normally",
+        "Middleware matcher config only applies to /login (does not affect other routes)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

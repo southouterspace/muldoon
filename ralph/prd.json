@@ -1,93 +1,180 @@
 {
   "project": "Muldoon",
-  "branchName": "ralph/performance-optimization-phase2",
-  "description": "Performance Optimization Phase 2 - Optimize magic link callback with Supabase RPC, add ISR caching to product grid and players page, make login page static",
+  "branchName": "ralph/player-sizing-cart-drawer",
+  "description": "Player Sizing System & Cart Drawer - Add player size preferences by product type with automatic sync for children, and convert cart to responsive drawer",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Create Supabase RPC for User Authentication Flow",
-      "description": "As a user clicking a magic link, I want authentication to complete faster so I can start using the app sooner.",
+      "title": "Add size columns to Player table",
+      "description": "As a developer, I need to store player size preferences by product type so sizes persist and can be pre-filled.",
       "acceptanceCriteria": [
-        "Create Supabase database function `handle_auth_callback` that accepts supabase_id, email, and is_admin parameters",
-        "Function performs upsert on User table (INSERT ON CONFLICT UPDATE)",
-        "Function returns user ID and whether user has linked players in single query using LEFT JOIN on UserPlayer",
-        "Migration file created at supabase/migrations/ with timestamped filename",
-        "Migration runs successfully via supabase db push or similar",
+        "Add migration with columns: jerseySize, tshirtSize, sockSize, hatSize (all TEXT, nullable)",
+        "Update TypeScript types in lib/types/database.ts to include new columns",
+        "Migration runs successfully without data loss",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Integrate RPC into Auth Callback Route",
-      "description": "As a developer, I want the auth callback to use the optimized RPC so users experience faster login.",
+      "title": "Add type and adult columns to Item table",
+      "description": "As a developer, I need to categorize items by type and audience so the system knows which size fields to use.",
       "acceptanceCriteria": [
-        "Replace getOrCreateUser() and hasLinkedPlayers() functions with single supabase.rpc('handle_auth_callback', ...) call",
-        "RPC called immediately after exchangeCodeForSession() completes",
-        "Error handling preserved for all failure cases (missing code, auth failure, RPC failure)",
-        "Redirect logic unchanged: onboarding/player if no linked players, home otherwise",
+        "Add migration with type column: TEXT with values 'jersey' | 't-shirt' | 'socks' | 'hat'",
+        "Add migration with adult column: BOOLEAN NOT NULL (no default - must be explicitly set)",
+        "Update existing items with appropriate type and adult values based on item names",
+        "Update TypeScript types in lib/types/database.ts",
+        "Migration runs successfully",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Add ISR Caching to Product Grid",
-      "description": "As a user browsing products, I want the page to load instantly from cache since products rarely change.",
+      "title": "Create server action for size sync",
+      "description": "As a developer, I need a server action that handles the size synchronization logic atomically.",
       "acceptanceCriteria": [
-        "Add `export const revalidate = 3600` to app/(main)/page.tsx (1 hour cache)",
-        "Verify admin item mutations in app/admin/items/actions.ts call revalidatePath('/') for on-demand invalidation",
+        "Create syncPlayerSizes action in app/actions/player.ts or similar",
+        "Action accepts: playerId, selectedSize, productType",
+        "Action updates Player record with size for all four product type columns",
+        "Action updates all OrderItems in DRAFT orders for that player, matching by item type",
+        "Action runs in a transaction to ensure atomicity",
+        "Action returns updated player and affected cart item count",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Add ISR Caching to Admin Players Page",
-      "description": "As an admin viewing the roster, I want the page to load faster since player data rarely changes.",
+      "title": "Create player size management UI",
+      "description": "As a parent, I want to set my child's sizes in their player profile so I don't have to remember them when ordering.",
       "acceptanceCriteria": [
-        "Add `export const revalidate = 3600` to app/admin/players/page.tsx (1 hour cache)",
-        "Verify player mutations in app/actions/players.ts call revalidatePath('/admin/players') for on-demand invalidation",
-        "Typecheck passes"
+        "Use vercel-react-best-practices skill before implementation",
+        "Add size fields to player edit form/modal (jerseySize, tshirtSize, sockSize, hatSize)",
+        "Size dropdowns show appropriate options based on typical child/youth sizes",
+        "Saving updates the Player record in database",
+        "Sizes persist and show correctly when re-opening player profile",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Make Login Page Static",
-      "description": "As a user visiting the login page, I want it to load instantly without server-side processing.",
+      "title": "Pre-fill sizes when adding items for a player",
+      "description": "As a parent, I want sizes pre-filled from my child's profile when adding items to cart so ordering is faster.",
       "acceptanceCriteria": [
-        "Remove server-side supabase.auth.getUser() check from app/(auth)/login/page.tsx",
-        "Add `export const dynamic = 'force-static'` to login page",
-        "Login form still renders and functions correctly",
+        "Use vercel-react-best-practices skill before implementation",
+        "When selecting a player for an item, size dropdown pre-fills based on item type and player's saved size",
+        "Jersey items use player's jerseySize",
+        "T-shirt items use player's tshirtSize",
+        "Sock items use player's sockSize",
+        "Hat items use player's hatSize",
+        "User can still override the pre-filled size",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill: login page loads without delay"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Add Middleware Auth Redirect for Login Page",
-      "description": "As an authenticated user visiting /login, I want to be redirected to home without the page rendering.",
+      "title": "Sync child sizes across product types",
+      "description": "As a parent, when I select a size for one product type for my child, I want all other product types to update to matching sizes.",
       "acceptanceCriteria": [
-        "Create or update middleware.ts at project root to check auth on /login route",
-        "Redirect authenticated users (valid session cookie) to `/` before page renders",
-        "Unauthenticated users see login page normally",
-        "Middleware matcher config only applies to /login (does not affect other routes)",
-        "Typecheck passes"
+        "Use vercel-react-best-practices skill before implementation",
+        "When size is selected for a child item (adult=false), sync size to all other product types",
+        "Update the Player record with new sizes for all four product types",
+        "Update any existing cart items for that player with the new sizes (matching by type)",
+        "Sync only triggers for child items (adult=false), not adult items",
+        "Show visual feedback that sizes were synced (toast notification or similar)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Convert cart page to responsive drawer",
+      "description": "As a user, I want to access my cart via a drawer/dialog instead of navigating to a separate page.",
+      "acceptanceCriteria": [
+        "Use vercel-react-best-practices skill before implementation",
+        "Remove or redirect /cart page route",
+        "Implement responsive drawer using shadcn pattern (Dialog on desktop, Drawer on mobile)",
+        "Drawer opens from cart icon in header",
+        "Drawer title is 'My Order'",
+        "Drawer can be closed by clicking outside, pressing escape, or close button",
+        "Adding items to cart does NOT auto-open the drawer",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Update header cart icon with item count",
+      "description": "As a user, I want to see how many items are in my cart without opening it.",
+      "acceptanceCriteria": [
+        "Use vercel-react-best-practices skill before implementation",
+        "Cart icon in header shows badge with item count",
+        "Badge updates reactively when items are added/removed",
+        "Badge hidden when cart is empty (no '0' badge)",
+        "Clicking cart icon opens the cart drawer",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Display cart items in drawer using product grid",
+      "description": "As a user, I want my cart items displayed consistently with the homepage product grid.",
+      "acceptanceCriteria": [
+        "Use vercel-react-best-practices skill before implementation",
+        "Refactor ProductGrid/ProductCard components to be reusable for cart context",
+        "Cart drawer displays items using the same visual style as homepage",
+        "Cart items show: product image, name, price, quantity, size (if applicable), player name",
+        "Each cart item has quantity controls (increase/decrease/remove)",
+        "Cart shows order total at bottom",
+        "Empty cart shows appropriate empty state message",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add cart actions to drawer",
+      "description": "As a user, I want to manage my cart and submit my order from the drawer.",
+      "acceptanceCriteria": [
+        "Use vercel-react-best-practices skill before implementation",
+        "'Continue Shopping' button closes drawer",
+        "'Submit Order' button submits the order (changes status from DRAFT to OPEN)",
+        "Submit button disabled when cart is empty",
+        "Show confirmation after successful order submission",
+        "Close drawer and show success message after order submitted",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
       "notes": ""
     }
   ]

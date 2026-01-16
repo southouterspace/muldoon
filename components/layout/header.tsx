@@ -1,4 +1,4 @@
-import { ShoppingCart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/layout/logo";
@@ -80,13 +80,13 @@ export async function Header(): Promise<React.ReactElement> {
 
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Button asChild size="lg" variant="secondary">
+            <Button asChild size="lg" variant="outline">
               <Link href="/admin">Admin</Link>
             </Button>
           )}
-          <Button asChild className="relative" size="lg" variant="ghost">
+          <Button asChild className="relative" size="lg" variant="secondary">
             <Link href="/cart">
-              <ShoppingCart className="size-5" />
+              <ShoppingBag className="h-5 w-5" strokeWidth={2} />
               <span className="ml-1 tabular-nums">{cartItemCount}</span>
             </Link>
           </Button>
