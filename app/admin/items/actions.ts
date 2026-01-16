@@ -28,7 +28,7 @@ interface ImageUploadResult {
  */
 async function uploadImage(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  itemId: number,
+  itemId: string,
   file: File
 ): Promise<ImageUploadResult | null> {
   const storagePath = `items/${itemId}/${file.name}`;
