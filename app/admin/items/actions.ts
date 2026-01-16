@@ -355,19 +355,24 @@ export async function moveToPosition(
     })
   );
 
-  // Batch update all items
-  for (const update of updates) {
-    const { error } = await supabase
-      .from("Item")
-      .update({
-        displayOrder: update.displayOrder,
-        updatedAt: update.updatedAt,
-      })
-      .eq("id", update.id);
+  // Batch update all items concurrently
+  const updateResults = await Promise.all(
+    updates.map(
+      (update: { id: string; displayOrder: number; updatedAt: string }) =>
+        supabase
+          .from("Item")
+          .update({
+            displayOrder: update.displayOrder,
+            updatedAt: update.updatedAt,
+          })
+          .eq("id", update.id)
+    )
+  );
 
-    if (error) {
-      return { success: false, error: "Failed to update display order" };
-    }
+  // Check for any errors in the batch
+  const failedUpdate = updateResults.find((result) => result.error);
+  if (failedUpdate) {
+    return { success: false, error: "Failed to update display order" };
   }
 
   revalidatePath("/admin");
