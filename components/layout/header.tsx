@@ -74,8 +74,8 @@ export async function Header(): Promise<React.ReactElement> {
 
   return (
     <header className="border-b bg-background">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Logo showText={false} size={56} />
+      <div className="container mx-auto flex items-center justify-between px-4 py-4">
+        <Logo showText={false} size={48} />
         <div className="flex items-center gap-2">
           {isAdmin && (
             <Button asChild size="lg" variant="secondary">
