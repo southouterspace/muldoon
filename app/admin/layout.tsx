@@ -72,7 +72,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-background">
+    <div className="fixed inset-0 z-50 flex bg-background pt-safe pb-safe">
       <aside className="flex h-screen w-20 flex-col items-center border-r bg-gradient-to-b from-muted/40 to-muted/20 py-4">
         <div className="mb-4">
           <Image

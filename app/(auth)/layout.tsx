@@ -3,5 +3,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }): React.ReactElement {
-  return <>{children}</>;
+  return <div className="pt-safe pb-safe">{children}</div>;
 }

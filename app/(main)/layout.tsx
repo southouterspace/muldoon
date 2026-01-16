@@ -6,9 +6,9 @@ export default function MainLayout({
   children: React.ReactNode;
 }): React.ReactElement {
   return (
-    <>
+    <div className="pt-safe pb-safe">
       <Header />
       <main>{children}</main>
-    </>
+    </div>
   );
 }
