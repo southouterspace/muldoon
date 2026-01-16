@@ -74,20 +74,6 @@ export function ItemForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="number">Item Number *</Label>
-            <Input
-              defaultValue={item?.number ?? ""}
-              disabled={isPending}
-              id="number"
-              min="1"
-              name="number"
-              placeholder="e.g., 1"
-              required
-              type="number"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
             <Input
               defaultValue={item?.name ?? ""}
