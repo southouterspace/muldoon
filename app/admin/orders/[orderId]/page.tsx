@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types/database";
 
 /**
- * Raw order data from Supabase with joined user and order items
+ * Raw order data from Supabase with joined user, user's players, and order items
  */
 interface OrderFromDb {
   id: number;
@@ -16,7 +16,16 @@ interface OrderFromDb {
   note: string | null;
   createdAt: string;
   updatedAt: string;
-  user: { email: string } | null;
+  user: {
+    email: string;
+    userPlayers: Array<{
+      player: {
+        firstName: string;
+        lastName: string;
+        jerseyNumber: number;
+      } | null;
+    }>;
+  } | null;
   orderItems: Array<{
     id: number;
     itemId: number;
@@ -50,7 +59,7 @@ export default async function OrderDetailPage({
 
   const supabase = await createClient();
 
-  // Fetch order with user and order items (including item details)
+  // Fetch order with user (including user's players) and order items in a single query
   const { data: order, error } = await supabase
     .from("Order")
     .select(
@@ -63,7 +72,14 @@ export default async function OrderDetailPage({
       createdAt,
       updatedAt,
       user:User!Order_userId_fkey (
-        email
+        email,
+        userPlayers:UserPlayer (
+          player:Player (
+            firstName,
+            lastName,
+            jerseyNumber
+          )
+        )
       ),
       orderItems:OrderItem (
         id,
@@ -90,21 +106,9 @@ export default async function OrderDetailPage({
 
   const typedOrder = order as unknown as OrderFromDb;
 
-  // Fetch the user's linked players to display on sized items
-  const { data: userPlayers } = await supabase
-    .from("UserPlayer")
-    .select("player:Player(*)")
-    .eq("userId", typedOrder.userId);
-
-  // Get the first linked player (primary player)
-  const linkedPlayer =
-    userPlayers && userPlayers.length > 0
-      ? (userPlayers[0].player as {
-          firstName: string;
-          lastName: string;
-          jerseyNumber: number;
-        } | null)
-      : null;
+  // Get the first linked player (primary player) from the nested user data
+  const userPlayers = typedOrder.user?.userPlayers ?? [];
+  const linkedPlayer = userPlayers.length > 0 ? userPlayers[0].player : null;
 
   return (
     <div className="space-y-8">
